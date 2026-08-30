@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/db.js';
 import { User } from './models/User.js';
 import { SafetyZone } from './models/SafetyZone.js';
@@ -6,6 +7,8 @@ import { IncidentReport } from './models/IncidentReport.js';
 import { EmergencyContact } from './models/EmergencyContact.js';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const seedData = async () => {
   try {

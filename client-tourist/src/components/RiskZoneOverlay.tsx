@@ -124,40 +124,5 @@ export const RiskZoneOverlay: React.FC<RiskZoneOverlayProps> = ({ mapInstance, m
     };
   }, [mapInstance, mapplsObj]);
 
-  return (
-    <>
-      {/* ── Legend – absolute-positioned top-right of the map ── */}
-      <div className="absolute top-3 right-3 z-50 bg-gray-950/90 backdrop-blur-sm border border-gray-700 rounded-xl px-3 py-2.5 shadow-xl text-xs">
-        <p className="text-gray-300 font-bold uppercase tracking-wider mb-2 text-[10px]">
-          AI Risk Zones
-        </p>
-        {loading && (
-          <p className="text-gray-500 text-[10px] animate-pulse">Loading…</p>
-        )}
-        {error && (
-          <p className="text-red-400 text-[10px]">{error}</p>
-        )}
-        {!loading && !error && zones.length === 0 && (
-          <p className="text-gray-500 text-[10px]">No zones generated yet</p>
-        )}
-        {Object.entries(RISK_COLORS).map(([level, { fill, label }]) => {
-          const count = zones.filter((z) => z.risk_level === level).length;
-          return (
-            <div key={level} className="flex items-center gap-2 mb-1 last:mb-0">
-              <span
-                className="w-3 h-3 rounded-full border border-white/20 flex-shrink-0"
-                style={{ backgroundColor: fill }}
-              />
-              <span className="text-gray-300">
-                {label}
-                {count > 0 && (
-                  <span className="ml-1 text-gray-500">({count})</span>
-                )}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </>
-  );
+  return null;
 };

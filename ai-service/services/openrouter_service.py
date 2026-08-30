@@ -28,10 +28,10 @@ def _get_client() -> OpenAI:
 # Free model fallback chain (priority order)
 # ──────────────────────────────────────────────
 FALLBACK_MODELS = [
-    "deepseek/deepseek-r1-0528:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-coder:free",
-    "google/gemma-3-27b-it:free",
+    "deepseek/deepseek-r1-0528",
+    "meta-llama/llama-3.3-70b-instruct",
+    "qwen/qwen3-coder",
+    "google/gemma-3-27b-it",
 ]
 
 
@@ -65,7 +65,8 @@ def get_safety_response_with_fallback(
 
             response = client.chat.completions.create(
                 model=model,
-                messages=messages
+                messages=messages,
+                max_tokens=800
             )
 
             reply = response.choices[0].message.content

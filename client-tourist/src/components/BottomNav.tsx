@@ -16,22 +16,20 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav className="bottom-nav" aria-label="Tourist mobile navigation">
-      <div className="bottom-nav-inner">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.to;
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`bottom-nav-link${active ? ' active' : ''}`}
-            >
-              <Icon size={18} />
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = pathname === item.to;
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`bottom-nav-link${active ? ' active' : ''}`}
+          >
+            <Icon size={18} />
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 };

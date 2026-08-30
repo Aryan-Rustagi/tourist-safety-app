@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { IncidentCard, IncidentData } from '../../components/IncidentCard';
 import {
   FileWarning,
   MapPin,
@@ -30,11 +31,27 @@ export const ReportIncident: React.FC = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [incidents, setIncidents] = useState<IncidentData[]>([]);
+  const [isLoadingIncidents, setIsLoadingIncidents] = useState(true);
 
   useEffect(() => {
     document.title = 'Report Incident — SafeTour Guardian';
     fetchCurrentCoords();
+    fetchIncidents();
   }, []);
+
+  const fetchIncidents = async () => {
+    try {
+      const res = await api.get('/incidents?verifiedOnly=true');
+      if (res.data.success) {
+        setIncidents(res.data.incidents);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch incidents', err);
+    } finally {
+      setIsLoadingIncidents(false);
+    }
+  };
 
   const fetchCurrentCoords = () => {
     setIsLocating(true);
@@ -209,6 +226,32 @@ export const ReportIncident: React.FC = () => {
             {isSubmitting ? 'Transmitting Report...' : 'Publish Incident Warning'}
           </button>
         </form>
+      </div>
+
+      <div className="mt-xl">
+        <div className="flex items-center gap-sm mb-lg border-b border-gray-200 pb-4">
+          <FileWarning size={20} className="text-amber-500" />
+          <h2 className="text-xl font-bold">Verified Incident Alerts</h2>
+        </div>
+        
+        {isLoadingIncidents ? (
+          <div className="grid grid-2">
+            <div className="skeleton skeleton-card" />
+            <div className="skeleton skeleton-card" />
+          </div>
+        ) : incidents.length === 0 ? (
+          <div className="empty-state">
+            <FileWarning className="empty-state-icon" />
+            <h3 className="empty-state-title">All clear nearby</h3>
+            <p className="empty-state-desc">No verified incidents in the public radar right now.</p>
+          </div>
+        ) : (
+          <div className="grid grid-2">
+            {incidents.map((incident) => (
+              <IncidentCard key={incident._id} incident={incident} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

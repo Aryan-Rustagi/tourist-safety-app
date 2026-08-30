@@ -7,7 +7,7 @@
     "dev:server": "npm run dev --prefix server",
     "dev:tourist": "npm run dev --prefix client-tourist",
     "dev:admin": "npm run dev --prefix client-admin",
-    "dev:ai": "cd ai-service && powershell -Command \".venv\\Scripts\\activate; uvicorn main:app --host 0.0.0.0 --port 8000 --reload\"",
+    "dev:ai": "cd ai-service && .venv\\Scripts\\uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
     "seed": "npm run seed --prefix server",
     "build": "npm run build --prefix server && npm run build --prefix client-tourist && npm run build --prefix client-admin",
     "install:all": "npm install && npm install --prefix server && npm install --prefix client-tourist && npm install --prefix client-admin"

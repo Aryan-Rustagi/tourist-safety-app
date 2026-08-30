@@ -4,7 +4,7 @@ import { SOSButton } from '../../components/SOSButton';
 import { EmergencySMSButton } from '../../components/EmergencySMSButton';
 import { ZoneCard, SafetyZoneData } from '../../components/ZoneCard';
 import { IncidentCard, IncidentData } from '../../components/IncidentCard';
-import { MapplsMap } from '../../components/MapplsMap';
+
 import { SafetyScoreCard } from '../../components/SafetyScoreCard';
 import { SafetyChatbot } from '../../components/SafetyChatbot';
 import { AiGeoFenceAlert } from '../../components/AiGeoFenceAlert';
@@ -24,7 +24,6 @@ import {
 
 export const TouristHome: React.FC = () => {
   const [zones, setZones] = useState<SafetyZoneData[]>([]);
-  const [incidents, setIncidents] = useState<IncidentData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
@@ -36,16 +35,10 @@ export const TouristHome: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [zonesRes, incidentsRes] = await Promise.all([
-        api.get('/safety-zones'),
-        api.get('/incidents?verifiedOnly=true'),
-      ]);
+      const zonesRes = await api.get('/safety-zones');
 
       if (zonesRes.data.success) {
         setZones(zonesRes.data.zones.slice(0, 4));
-      }
-      if (incidentsRes.data.success) {
-        setIncidents(incidentsRes.data.incidents.slice(0, 4));
       }
     } catch (err) {
       console.warn('Dashboard data fetch warning:', err);
@@ -162,9 +155,7 @@ export const TouristHome: React.FC = () => {
         </div>
       </section>
 
-      <section className="container mb-xl">
-        <MapplsMap className="dashboard-map h-96 w-full rounded-xl overflow-hidden shadow-sm border border-gray-200" />
-      </section>
+
 
       {/* ── AI Safety Chatbot (Floating) ── */}
       <SafetyChatbot />
@@ -173,7 +164,7 @@ export const TouristHome: React.FC = () => {
       <AiGeoFenceAlert />
 
       <section className="container">
-        <div className="grid grid-2">
+        <div className="max-w-3xl mx-auto">
           <div>
             <div className="section-title-row">
               <div className="flex items-center gap-sm">
@@ -199,36 +190,6 @@ export const TouristHome: React.FC = () => {
               <div className="grid grid-2">
                 {zones.map((zone) => (
                   <ZoneCard key={zone._id} zone={zone} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="section-title-row">
-              <div className="flex items-center gap-sm">
-                <FileWarning size={20} color="#fbbf24" />
-                <h3>Verified Incident Alerts</h3>
-              </div>
-              <Link to="/report" className="link-accent">
-                Report New <ArrowRight size={14} />
-              </Link>
-            </div>
-            {isLoading ? (
-              <div className="grid grid-2">
-                <div className="skeleton skeleton-card" />
-                <div className="skeleton skeleton-card" />
-              </div>
-            ) : incidents.length === 0 ? (
-              <div className="empty-state">
-                <FileWarning className="empty-state-icon" />
-                <h3 className="empty-state-title">All clear nearby</h3>
-                <p className="empty-state-desc">No verified incidents in the public radar right now.</p>
-              </div>
-            ) : (
-              <div className="grid grid-2">
-                {incidents.map((incident) => (
-                  <IncidentCard key={incident._id} incident={incident} />
                 ))}
               </div>
             )}

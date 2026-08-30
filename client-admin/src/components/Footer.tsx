@@ -4,61 +4,39 @@ import { Shield } from 'lucide-react';
 
 export const Footer: React.FC<{ portal?: 'tourist' | 'admin' }> = ({ portal = 'tourist' }) => {
   return (
-    <footer className="footer">
-      <div className="footer-inner">
-        <div className="footer-grid">
-          <div>
-            <div className="navbar-brand">
-              <div className="navbar-brand-icon">
-                <Shield size={20} color="#fff" />
-              </div>
-              <span className="navbar-brand-text">SafeTour Guardian</span>
-            </div>
-            <p className="footer-brand-desc">
-              Real-time tourist safety, SOS dispatch, and crowd-sourced incident intelligence
-              built for Smart India Hackathon.
-            </p>
+    <footer className="bg-gray-950 border-t border-gray-800 py-8 mt-auto" role="contentinfo">
+      <div className="container mx-auto px-4 text-center">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="bg-gray-900 p-1.5 rounded-md border border-gray-800">
+            <Shield size={16} className="text-white" />
           </div>
-          <div>
-            <h4 className="footer-heading">Product</h4>
-            {portal === 'tourist' ? (
-              <>
-                <Link to="/" className="footer-link">Home</Link>
-                <Link to="/dashboard" className="footer-link">Safety Dashboard</Link>
-                <Link to="/zones" className="footer-link">Safety Zones</Link>
-                <Link to="/report" className="footer-link">Report Incident</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/" className="footer-link">Command Center</Link>
-                <Link to="/zones" className="footer-link">Zone Management</Link>
-              </>
-            )}
-          </div>
-          <div>
-            <h4 className="footer-heading">Project</h4>
-            {portal === 'tourist' && <Link to="/about" className="footer-link">About &amp; SIH Brief</Link>}
-            <Link to="/login" className="footer-link">Sign In</Link>
-            <Link to="/register" className="footer-link">Create Account</Link>
-          </div>
-          <div>
-            <h4 className="footer-heading">Emergency</h4>
-            <a href="tel:112" className="footer-link">112 National Emergency</a>
-            <a href="tel:1363" className="footer-link">1363 Tourist Helpline</a>
-            <a href="tel:108" className="footer-link">108 Ambulance</a>
-          </div>
+          <span className="font-bold text-white tracking-wide text-sm">SafeTour Guardian</span>
         </div>
-        <div className="footer-bottom">
-          <p className="footer-bottom-text">
-            SafeTour Guardian • SIH 2026 • {portal === 'admin' ? 'Police & Rescue Command' : 'Tourist Portal'}
-          </p>
-          <div className="footer-tech-badges">
-            <span className="tech-badge">MongoDB</span>
-            <span className="tech-badge">Express</span>
-            <span className="tech-badge">React</span>
-            <span className="tech-badge">Node.js</span>
-            <span className="tech-badge">Socket.IO</span>
-          </div>
+        
+        <p className="text-gray-400 text-xs mb-6 max-w-md mx-auto">
+          Real-time tourist safety, one-touch SOS dispatch, and crowd-sourced incident intelligence.
+        </p>
+        
+        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-gray-500">
+          {portal === 'tourist' ? (
+            <>
+              <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+              <Link to="/zones" className="hover:text-white transition-colors">Safety Zones</Link>
+              <Link to="/report" className="hover:text-white transition-colors">Report Incident</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/" className="hover:text-white transition-colors">Command Center</Link>
+              <Link to="/zones" className="hover:text-white transition-colors">Zone Management</Link>
+            </>
+          )}
+          <Link to="/login" className="hover:text-white transition-colors">Sign In</Link>
+        </div>
+        
+        <div className="mt-6 pt-6 border-t border-gray-800/50 flex flex-col md:flex-row items-center justify-center gap-2 text-[10px] text-gray-600">
+          <p>© 2026 SafeTour Guardian. SIH 2026.</p>
+          <span className="hidden md:inline">•</span>
+          <p>{portal === 'admin' ? 'Police & Rescue Command' : 'Tourist Portal'}</p>
         </div>
       </div>
     </footer>

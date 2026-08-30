@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { mappls } from 'mappls-web-maps';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, LocateFixed } from 'lucide-react';
 import api from '../services/api';
 import { RiskZoneOverlay } from './RiskZoneOverlay';
 
@@ -42,6 +42,8 @@ export const MapplsMap = forwardRef<MapplsMapRef, MapplsMapProps>(
   const [dangerBannerDismissed, setDangerBannerDismissed] = useState(false);
   const [redZones, setRedZones] = useState<any>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [currentLoc, setCurrentLoc] = useState<{lat: number, lng: number} | null>(null);
+  const [locating, setLocating] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const mapplsObjRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
@@ -148,6 +150,7 @@ export const MapplsMap = forwardRef<MapplsMapRef, MapplsMapProps>(
         lastGeoCheckRef.current = now;
 
         const { latitude, longitude } = position.coords;
+        setCurrentLoc({ lat: latitude, lng: longitude });
         let inside = false;
         
         if (redZones.features && Array.isArray(redZones.features)) {
@@ -210,16 +213,59 @@ export const MapplsMap = forwardRef<MapplsMapRef, MapplsMapProps>(
     };
   }, [redZones]);
 
+  const handleLocateMe = () => {
+    setLocating(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLoc({ lat: latitude, lng: longitude });
+          if (mapRef.current) {
+            try {
+              mapRef.current.setCenter({ lat: latitude, lng: longitude });
+              mapRef.current.setZoom(15);
+              if (userMarkerRef.current) {
+                userMarkerRef.current.setPosition({ lat: latitude, lng: longitude });
+              }
+            } catch (e) {
+              console.warn('Failed to center map', e);
+            }
+          }
+          setLocating(false);
+        },
+        () => {
+          console.warn('Geolocation failed');
+          setLocating(false);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setLocating(false);
+    }
+  };
+
   return (
     <div className="relative w-full">
       {isInDangerZone && !dangerBannerDismissed && (
         <div className="risk-alert-banner absolute top-4 left-4 right-4 z-50 p-6 bg-red-50 border border-red-200 rounded-2xl shadow-md flex items-center gap-4">
-          <AlertTriangle className="w-6 h-6 mr-3 flex-shrink-0" />
+          <AlertTriangle className="w-6 h-6 mr-3 flex-shrink-0 text-red-600" />
           <p className="font-bold text-red-700 flex-1">You are entering a High Risk Zone</p>
-          <button type="button" onClick={() => setDangerBannerDismissed(true)} className="btn btn-danger btn-sm">Leave Area</button>
+          <button type="button" onClick={() => setDangerBannerDismissed(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Leave Area</button>
         </div>
       )}
       
+      {/* Locate Me Button */}
+      {mapReady && (
+        <button
+          onClick={handleLocateMe}
+          disabled={locating}
+          className="absolute bottom-6 right-6 z-40 bg-white p-3 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-blue-600 focus:outline-none transition-transform hover:scale-105"
+          aria-label="Locate Me"
+        >
+          <LocateFixed size={24} className={locating ? 'animate-pulse text-gray-400' : ''} />
+        </button>
+      )}
+
       {/* Risk Zone Overlay Legend (renders on top of map) */}
       {mapReady && mapRef.current && mapplsObjRef.current && (
         <RiskZoneOverlay
