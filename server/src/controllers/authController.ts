@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { User, IUser, UserRole } from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { EmergencyContact } from '../models/EmergencyContact.js';
+
+import { createBlock } from '../utils/blockchain.js';
 
 // Helper to generate JWT
 const generateToken = (id: string, role: UserRole): string => {
@@ -45,6 +48,22 @@ export const register = async (
       role: role || 'TOURIST',
     });
 
+    // Mint Blockchain Digital ID for the tourist prototype
+    try {
+      const block = await createBlock({
+        userId: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        type: 'DIGITAL_IDENTITY_MINT',
+      });
+      user.blockchainId = block.hash;
+      await user.save();
+    } catch (blockErr) {
+      console.warn('Failed to mint initial blockchain block:', blockErr);
+    }
+
     const token = generateToken(user._id.toString(), user.role);
 
     res.status(201).json({
@@ -56,6 +75,7 @@ export const register = async (
         email: user.email,
         phone: user.phone,
         role: user.role,
+        blockchainId: user.blockchainId,
         createdAt: user.createdAt,
       },
     });
@@ -100,6 +120,24 @@ export const login = async (
       return;
     }
 
+    // Auto-mint blockchainId if existing user doesn't have one
+    if (!user.blockchainId) {
+      try {
+        const block = await createBlock({
+          userId: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          role: user.role,
+          type: 'DIGITAL_IDENTITY_MINT',
+        });
+        user.blockchainId = block.hash;
+        await user.save();
+      } catch (e) {
+        console.warn('Could not auto-mint block on login:', e);
+      }
+    }
+
     const token = generateToken(user._id.toString(), user.role);
 
     res.json({
@@ -111,6 +149,7 @@ export const login = async (
         email: user.email,
         phone: user.phone,
         role: user.role,
+        blockchainId: user.blockchainId,
         createdAt: user.createdAt,
       },
     });
@@ -130,6 +169,23 @@ export const getMe = async (
       return;
     }
 
+    if (!req.user.blockchainId) {
+      try {
+        const block = await createBlock({
+          userId: req.user._id.toString(),
+          name: req.user.name,
+          email: req.user.email,
+          phone: req.user.phone || '',
+          role: req.user.role,
+          type: 'DIGITAL_IDENTITY_MINT',
+        });
+        req.user.blockchainId = block.hash;
+        await req.user.save();
+      } catch (e) {
+        console.warn('Could not auto-mint block on getMe:', e);
+      }
+    }
+
     const contacts = await EmergencyContact.find({ userId: req.user._id });
 
     res.json({
@@ -140,6 +196,7 @@ export const getMe = async (
         email: req.user.email,
         phone: req.user.phone,
         role: req.user.role,
+        blockchainId: req.user.blockchainId,
         createdAt: req.user.createdAt,
       },
       contacts,
@@ -175,7 +232,135 @@ export const updateProfile = async (
         email: user?.email,
         phone: user?.phone,
         role: user?.role,
+        blockchainId: user?.blockchainId,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const googleAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { credential, role } = req.body;
+    if (!credential) {
+      res.status(400).json({ success: false, message: 'Google credential token is required' });
+      return;
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      res.status(400).json({ success: false, message: 'Invalid Google token payload' });
+      return;
+    }
+
+    const { email, name, sub: googleId, picture: avatar } = payload;
+
+    // Check if user exists by googleId or email
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: email.toLowerCase() }],
+    });
+
+    if (user) {
+      // If user exists without googleId, link it
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      if (avatar && !user.avatar) {
+        user.avatar = avatar;
+      }
+      if (!user.blockchainId) {
+        try {
+          const block = await createBlock({
+            userId: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            phone: user.phone || '',
+            role: user.role,
+            type: 'DIGITAL_IDENTITY_MINT',
+          });
+          user.blockchainId = block.hash;
+        } catch (e) {
+          console.warn('Could not mint block for existing Google user:', e);
+        }
+      }
+      await user.save();
+    } else {
+      // Create new user
+      user = await User.create({
+        name: name || 'Google User',
+        email: email.toLowerCase(),
+        googleId,
+        avatar,
+        role: role || 'TOURIST',
+      });
+
+      try {
+        const block = await createBlock({
+          userId: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          role: user.role,
+          type: 'DIGITAL_IDENTITY_MINT',
+        });
+        user.blockchainId = block.hash;
+        await user.save();
+      } catch (e) {
+        console.warn('Could not mint block for new Google user:', e);
+      }
+    }
+
+    const token = generateToken(user._id.toString(), user.role);
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+        blockchainId: user.blockchainId,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error: any) {
+    console.error('Google Auth Error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Google authentication failed',
+    });
+  }
+};
+
+export const getTourists = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const tourists = await User.find({ role: 'TOURIST' })
+      .select('-password -__v')
+      .sort('-createdAt');
+      
+    res.json({
+      success: true,
+      count: tourists.length,
+      tourists,
     });
   } catch (error) {
     next(error);

@@ -14,6 +14,7 @@ import { AboutPage } from './pages/AboutPage';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { LayoutWrapper } from './components/LayoutWrapper';
+import { KycVerificationPage } from './pages/tourist/KycVerificationPage';
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -55,6 +56,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={['TOURIST']}>
                 <EmergencyContacts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc-verification"
+            element={
+              <ProtectedRoute allowedRoles={['TOURIST']}>
+                <KycVerificationPage />
               </ProtectedRoute>
             }
           />

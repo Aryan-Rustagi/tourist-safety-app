@@ -7,8 +7,15 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
+  googleId?: string;
+  avatar?: string;
   phone?: string;
   role: UserRole;
+  blockchainId?: string;
+  idType?: string;
+  idNumberMasked?: string;
+  kycDocumentUrl?: string;
+  isKycVerified: boolean;
   latitude?: number;
   longitude?: number;
   createdAt: Date;
@@ -32,9 +39,18 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function (this: IUser) {
+        return !this.googleId;
+      },
       minlength: 6,
       select: false,
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+    },
+    avatar: {
+      type: String,
     },
     phone: {
       type: String,
@@ -44,6 +60,24 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: ['TOURIST', 'ADMIN'],
       default: 'TOURIST',
+    },
+    blockchainId: {
+      type: String,
+      index: true,
+    },
+    idType: {
+      type: String,
+      enum: ['Aadhaar', 'Passport'],
+    },
+    idNumberMasked: {
+      type: String,
+    },
+    kycDocumentUrl: {
+      type: String,
+    },
+    isKycVerified: {
+      type: Boolean,
+      default: false,
     },
     latitude: {
       type: Number,

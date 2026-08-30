@@ -113,11 +113,12 @@ export const IncidentCard: React.FC<{
         </div>
         
         {showAdminControls && onVerifyToggle && (
-          <div className="w-full mt-2">
+          <div style={{ width: '100%', marginTop: '0.75rem' }}>
             <button
               type="button"
               onClick={onVerifyToggle}
-              className={`btn btn-sm btn-block ${incident.isVerified ? 'bg-gray-100 text-gray-800 hover:bg-gray-200' : 'btn-success'}`}
+              className={`btn btn-sm btn-block ${incident.isVerified ? 'btn-secondary' : 'btn-success'}`}
+              style={{ fontWeight: 700 }}
             >
               {incident.isVerified ? 'Revoke Verification' : 'Verify & Publish'}
             </button>

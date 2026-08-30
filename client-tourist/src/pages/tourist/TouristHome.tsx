@@ -9,6 +9,7 @@ import { SafetyScoreCard } from '../../components/SafetyScoreCard';
 import { SafetyChatbot } from '../../components/SafetyChatbot';
 import { AiGeoFenceAlert } from '../../components/AiGeoFenceAlert';
 import { WeatherCard } from '../../components/WeatherCard';
+import { BlockchainDigitalIdCard } from '../../components/BlockchainDigitalIdCard';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import api from '../../services/api';
 import {
@@ -73,10 +74,12 @@ export const TouristHome: React.FC = () => {
   };
 
   const emergencyNumbers = [
-    { title: 'Police / Emergency', number: '112', desc: 'National 24/7 Dispatch', icon: 'helpline-icon-police' },
-    { title: 'Tourist Police Helpline', number: '1363', desc: 'Multilingual Assistance', icon: 'helpline-icon-tourist' },
-    { title: 'Ambulance & Medical', number: '108', desc: 'Paramedics & Trauma', icon: 'helpline-icon-medical' },
+    { title: 'National Emergency', number: '112', desc: 'All-in-one Emergency Dispatch', icon: 'helpline-icon-police' },
+    { title: 'Police Control Room', number: '100', desc: 'Local Police Assistance', icon: 'helpline-icon-police' },
+    { title: 'Women Helpline', number: '1091', desc: 'Women in Distress', icon: 'helpline-icon-tourist' },
+    { title: 'Ambulance & Medical', number: '102', desc: 'Paramedics & Hospital', icon: 'helpline-icon-medical' },
     { title: 'Fire & Rescue', number: '101', desc: 'Fire Brigade', icon: 'helpline-icon-fire' },
+    { title: 'Tourist Helpline', number: '1363', desc: 'Multilingual Tourist Support', icon: 'helpline-icon-tourist' },
   ];
 
   return (
@@ -84,7 +87,7 @@ export const TouristHome: React.FC = () => {
       <section className="container page dashboard-hero">
         <div className="text-center" style={{ maxWidth: 640, margin: '0 auto 2rem' }}>
           <p className="dashboard-eyebrow">Tourist safety, simplified</p>
-          <h1 className="text-5xl font-extrabold">
+          <h1 className="font-extrabold mb-4">
             Travel Safe, <span className="text-blue">Stay Protected</span>
           </h1>
           <p className="hero-subtitle">
@@ -101,6 +104,12 @@ export const TouristHome: React.FC = () => {
           <SOSButton />
         ) : (
           <EmergencySMSButton />
+        )}
+
+        {isOnline && (
+          <div style={{ maxWidth: 960, margin: '2rem auto 0' }}>
+            <BlockchainDigitalIdCard />
+          </div>
         )}
 
         {isOnline && (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { Shield, Lock, Mail, AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
+import { GoogleLoginButton } from '../../components/GoogleLoginButton';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -105,6 +106,12 @@ export const Login: React.FC = () => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          <div className="auth-divider" style={{ margin: '1.25rem 0 1rem' }}>
+            <span>Or sign in with Google</span>
+          </div>
+
+          <GoogleLoginButton role="ADMIN" text="signin_with" onError={(err) => setErrorMsg(err)} />
 
           {/* Quick Demo Credentials */}
           <div className="demo-section">

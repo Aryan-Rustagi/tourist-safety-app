@@ -107,7 +107,7 @@ const callGemini = async (messages: any[], apiKey?: string) => {
     .join('\n\n');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key.trim()}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

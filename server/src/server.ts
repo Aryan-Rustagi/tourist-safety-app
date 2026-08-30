@@ -24,6 +24,7 @@ import riskZoneRoutes from './routes/riskZoneRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import weatherRoutes from './routes/weatherRoutes.js';
 import smsRoutes from './routes/smsRoutes.js';
+import blockchainRoutes from './routes/blockchainRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -96,6 +97,10 @@ app.use('/api/risk-zones', riskZoneRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/blockchain', blockchainRoutes);
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Global Error Handler
 app.use(errorHandler);

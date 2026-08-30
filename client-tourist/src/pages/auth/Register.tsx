@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { Shield, Lock, Mail, User, Phone, AlertTriangle, ArrowRight, ShieldCheck, Zap, Globe } from 'lucide-react';
 
+import { GoogleLoginButton } from '../../components/GoogleLoginButton';
+
 export const Register: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -197,7 +199,13 @@ export const Register: React.FC = () => {
             </button>
           </form>
 
-          <p className="auth-footer-link" style={{ marginTop: '1.5rem' }}>
+          <div className="auth-divider" style={{ margin: '1.25rem 0 1rem' }}>
+            <span>Or sign up with Google</span>
+          </div>
+
+          <GoogleLoginButton role="TOURIST" text="signup_with" onError={(err) => setErrorMsg(err)} />
+
+          <p className="auth-footer-link" style={{ marginTop: '1.25rem' }}>
             Already have an account?{' '}
             <Link to="/login">Sign In</Link>
           </p>

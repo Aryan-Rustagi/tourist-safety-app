@@ -9,6 +9,10 @@ export interface User {
   email: string;
   phone?: string;
   role: UserRole;
+  blockchainId?: string;
+  isKycVerified?: boolean;
+  idType?: string;
+  idNumberMasked?: string;
   createdAt?: string;
 }
 
@@ -19,6 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogle: (credential: string, role?: UserRole) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -108,6 +113,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginWithGoogle = async (credential: string, role: UserRole = 'TOURIST') => {
+    try {
+      const res = await api.post('/auth/google', { credential, role });
+      if (res.data.success) {
+        const { token: receivedToken, user: receivedUser } = res.data;
+        setToken(receivedToken);
+        setUser(receivedUser);
+        localStorage.setItem('tourist_safety_token', receivedToken);
+        localStorage.setItem('tourist_safety_user', JSON.stringify(receivedUser));
+        return { success: true, user: receivedUser };
+      }
+      return { success: false, message: res.data.message || 'Google sign-in failed' };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.response?.data?.message || err.message || 'Google sign-in failed',
+      };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -125,6 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         login,
         register,
+        loginWithGoogle,
         logout,
         refreshProfile,
       }}

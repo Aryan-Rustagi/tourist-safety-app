@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Sparkles,
 } from 'lucide-react';
+import { GoogleLoginButton } from '../components/GoogleLoginButton';
 
 export const LandingPage: React.FC = () => {
   const { login, register } = useAuth();
@@ -233,6 +234,10 @@ export const LandingPage: React.FC = () => {
                     </button>
                   </form>
 
+                  <div className="auth-divider"><span>Or continue with</span></div>
+
+                  <GoogleLoginButton role="TOURIST" text="continue_with" onError={(err) => setLoginError(err)} />
+
                   <div className="auth-divider">Quick Demo</div>
 
                   <button
@@ -328,6 +333,10 @@ export const LandingPage: React.FC = () => {
                       <ArrowRight size={15} />
                     </button>
                   </form>
+
+                  <div className="auth-divider"><span>Or sign up with</span></div>
+
+                  <GoogleLoginButton role="TOURIST" text="signup_with" onError={(err) => setRegError(err)} />
                 </div>
               )}
             </div>
@@ -366,11 +375,14 @@ export const LandingPage: React.FC = () => {
             <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--red-400)', marginBottom: '0.5rem' }}>Emergency</p>
             <h2 style={{ color: 'white', fontSize: '1.5rem' }}>Key helpline numbers</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', maxWidth: 700, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', maxWidth: 900, margin: '0 auto' }}>
             {[
               { label: 'National Emergency', num: '112' },
+              { label: 'Police', num: '100' },
+              { label: 'Women Helpline', num: '1091' },
+              { label: 'Ambulance', num: '102' },
+              { label: 'Fire', num: '101' },
               { label: 'Tourist Helpline', num: '1363' },
-              { label: 'Ambulance', num: '108' },
             ].map(e => (
               <a
                 key={e.num}
