@@ -33,17 +33,42 @@ export const TouristHome: React.FC = () => {
   }, []);
 
   const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      const zonesRes = await api.get('/safety-zones');
-
-      if (zonesRes.data.success) {
-        setZones(zonesRes.data.zones.slice(0, 4));
+    setIsLoading(true);
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const zonesRes = await api.get(`/safety-zones?lat=${latitude}&lng=${longitude}`);
+            if (zonesRes.data.success) {
+              setZones(zonesRes.data.zones.slice(0, 4));
+            }
+          } catch (err) {
+            console.warn('Dashboard data fetch warning:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        async () => {
+          try {
+            const zonesRes = await api.get('/safety-zones');
+            if (zonesRes.data.success) setZones(zonesRes.data.zones.slice(0, 4));
+          } catch (err) {
+            console.warn('Dashboard data fetch warning:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      );
+    } else {
+      try {
+        const zonesRes = await api.get('/safety-zones');
+        if (zonesRes.data.success) setZones(zonesRes.data.zones.slice(0, 4));
+      } catch (err) {
+        console.warn('Dashboard data fetch warning:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.warn('Dashboard data fetch warning:', err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

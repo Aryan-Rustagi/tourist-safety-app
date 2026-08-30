@@ -34,15 +34,15 @@ export const SOSButton: React.FC = () => {
         },
         (error) => {
           console.warn('Geolocation error or permission denied:', error.message);
-          setCoords({ latitude: 28.6139, longitude: 77.209 });
-          setAddress('Central Tourist District (Default/Simulated GPS)');
+          setCoords({ latitude: 26.9124, longitude: 75.7873 });
+          setAddress('Jaipur (Fallback GPS)');
           setIsLocating(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      setCoords({ latitude: 28.6139, longitude: 77.209 });
-      setAddress('Central Tourist District (Default/Simulated GPS)');
+      setCoords({ latitude: 26.9124, longitude: 75.7873 });
+      setAddress('Jaipur (Fallback GPS)');
       setIsLocating(false);
     }
   };
@@ -57,7 +57,7 @@ export const SOSButton: React.FC = () => {
 
   const executeSOSDispatch = async () => {
     setIsSubmitting(true);
-    const activeCoords = coords || { latitude: 28.6139, longitude: 77.209 };
+    const activeCoords = coords || { latitude: 26.9124, longitude: 75.7873 };
 
     await triggerSOS({
       latitude: activeCoords.latitude,

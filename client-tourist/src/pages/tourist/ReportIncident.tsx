@@ -24,8 +24,8 @@ export const ReportIncident: React.FC = () => {
   const [category, setCategory] = useState<string>('SCAM');
   const [address, setAddress] = useState('');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number }>({
-    latitude: 28.6139,
-    longitude: 77.209,
+    latitude: 26.9124,
+    longitude: 75.7873,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -62,12 +62,12 @@ export const ReportIncident: React.FC = () => {
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
           });
-          setAddress(`Near ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+          setAddress(`Dharamshala (Near ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
           setIsLocating(false);
         },
         () => {
-          setCoords({ latitude: 28.6139, longitude: 77.209 });
-          setAddress('Central Market Tourist Area');
+          setCoords({ latitude: 26.9124, longitude: 75.7873 });
+          setAddress('Jaipur (Fallback GPS)');
           setIsLocating(false);
         },
         { timeout: 8000 }

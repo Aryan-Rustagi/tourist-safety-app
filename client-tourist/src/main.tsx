@@ -6,6 +6,7 @@ import { AlertProvider } from './context/AlertContext';
 import App from './App';
 import './globals.css';
 
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>

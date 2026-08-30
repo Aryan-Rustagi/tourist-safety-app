@@ -35,7 +35,7 @@ const isPointInPolygon = (point: [number, number], polygon: number[][][]) => {
 };
 
 export const MapplsMap = forwardRef<MapplsMapRef, MapplsMapProps>(
-  ({ className = 'h-96 w-full rounded-xl overflow-hidden shadow-lg border border-gray-200', center = [28.61, 77.23], zoom = 13 }, ref) => {
+  ({ className = 'h-96 w-full rounded-xl overflow-hidden shadow-lg border border-gray-200', center = [26.9124, 75.7873], zoom = 13 }, ref) => {
   const mapRef = useRef<any>(null);
   const geojsonLayerRef = useRef<any>(null);
   const [isInDangerZone, setIsInDangerZone] = useState(false);

@@ -27,16 +27,43 @@ export const SafeZones: React.FC = () => {
   }, []);
 
   const fetchZones = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get('/safety-zones');
-      if (res.data.success) {
-        setZones(res.data.zones);
+    setIsLoading(true);
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const res = await api.get(`/safety-zones?lat=${latitude}&lng=${longitude}`);
+            if (res.data.success) {
+              setZones(res.data.zones);
+            }
+          } catch (err) {
+            console.warn('Failed to fetch zones:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        async () => {
+          // Fallback if location fails
+          try {
+            const res = await api.get('/safety-zones');
+            if (res.data.success) setZones(res.data.zones);
+          } catch (err) {
+            console.warn('Failed to fetch zones:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      );
+    } else {
+      try {
+        const res = await api.get('/safety-zones');
+        if (res.data.success) setZones(res.data.zones);
+      } catch (err) {
+        console.warn('Failed to fetch zones:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.warn('Failed to fetch zones:', err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -133,7 +160,7 @@ export const SafeZones: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-xl">{zones.length > 0 && <MapplsMap center={[28.61, 77.23]} zoom={13} className="h-[500px] w-full rounded-2xl overflow-hidden shadow-sm border border-gray-200" />}</div>
+      <div className="mb-xl">{zones.length > 0 && <MapplsMap center={[32.2190, 76.3234]} zoom={13} className="h-[500px] w-full rounded-2xl overflow-hidden shadow-sm border border-gray-200" />}</div>
 
       <div className="filter-bar mb-xl">
         <div className="input-group flex-1" style={{ width: '100%' }}>

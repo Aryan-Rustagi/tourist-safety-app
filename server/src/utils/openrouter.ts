@@ -98,16 +98,16 @@ const callGrok = async (messages: any[]) => {
   return { role: 'assistant', content: text };
 };
 
-const callGemini = async (messages: any[]) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+const callGemini = async (messages: any[], apiKey?: string) => {
+  const key = apiKey || process.env.GEMINI_API_KEY;
+  if (!key) return null;
 
   const conversation = messages
     .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
     .join('\n\n');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -139,7 +139,7 @@ const callGemini = async (messages: any[]) => {
 
 /**
  * Sends a chat request using a provider fallback chain.
- * Priorities: Grok -> Gemini -> OpenRouter free models -> local emergency fallback.
+ * Priorities: Grok -> Gemini -> Gemini Fallback -> OpenRouter free models -> local emergency fallback.
  */
 export const sendChatWithFallback = async (history: any[], contextStr: string) => {
   const userMessage = history.find((item) => item.role === 'user')?.content || '';
@@ -148,7 +148,13 @@ export const sendChatWithFallback = async (history: any[], contextStr: string) =
     ...history,
   ];
 
-  const providers = [callGrok, callGemini];
+  const callGeminiPrimary = (msgs: any[]) => callGemini(msgs, process.env.GEMINI_API_KEY);
+  Object.defineProperty(callGeminiPrimary, 'name', { value: 'callGeminiPrimary' });
+
+  const callGeminiFallback = (msgs: any[]) => callGemini(msgs, process.env.GEMINI_FALLBACK_API_KEY);
+  Object.defineProperty(callGeminiFallback, 'name', { value: 'callGeminiFallback' });
+
+  const providers = [callGrok, callGeminiPrimary, callGeminiFallback];
 
   for (const provider of providers) {
     try {
