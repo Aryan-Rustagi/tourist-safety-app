@@ -31,7 +31,7 @@ export const Navbar: React.FC = () => {
     { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
     { to: '/zones', label: 'Safety Zones', icon: <MapPin size={14} color="#10B981" /> },
     { to: '/report', label: 'Report', icon: <FileWarning size={14} color="#F59E0B" /> },
-    ...(isAuthenticated ? [{ to: '/contacts', label: 'ICE Contacts', icon: <Users size={14} color="#0EA5E9" /> }] : []),
+    { to: '/contacts', label: 'ICE Contacts', icon: <Users size={14} color="#0EA5E9" /> },
     { to: '/about', label: 'About', icon: <Info size={14} /> },
   ];
 
@@ -44,7 +44,7 @@ export const Navbar: React.FC = () => {
           <div className="navbar-brand-icon">
             <Shield size={20} color="#fff" />
           </div>
-          <span className="navbar-brand-text">SafeTour</span>
+          <span className="navbar-brand-text">Safar Setu</span>
           <span className="navbar-portal-badge badge badge-rose">Tourist</span>
         </Link>
 

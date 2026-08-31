@@ -1,11 +1,11 @@
-# 🛡️ SafeTour Guardian - Tourist Safety & Emergency Rescue Platform
+# 🛡️ Safar Setu - Tourist Safety & Emergency Rescue Platform
 
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-realtime-010101?logo=socket.io&logoColor=white)
 
-SafeTour Guardian is a dual-portal safety network for tourists and police or rescue teams. It
+Safar Setu is a dual-portal safety network for tourists and police or rescue teams. It
 combines one-touch SOS dispatch, GPS-aware safety zones, verified incident intelligence, and ICE
 contacts in a presentation-ready Smart India Hackathon prototype.
 
@@ -20,7 +20,7 @@ fragmented helplines, language barriers, and limited local context can delay a r
 reports are difficult for responders to verify and command teams often lack a live, location-linked
 queue of tourist distress calls.
 
-SafeTour Guardian addresses this gap with one tourist workflow and one responder workflow backed by
+Safar Setu addresses this gap with one tourist workflow and one responder workflow backed by
 the same authenticated API and real-time event channel.
 
 ## Key Features

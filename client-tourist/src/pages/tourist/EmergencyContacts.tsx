@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -11,6 +12,7 @@ import {
   CheckCircle,
   AlertTriangle,
   HeartHandshake,
+  Info,
 } from 'lucide-react';
 
 interface Contact {
@@ -36,23 +38,60 @@ export const EmergencyContacts: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
-    document.title = 'Emergency Contacts — SafeTour Guardian';
-    if (isAuthenticated) {
-      loadContacts();
-    }
+    document.title = 'Emergency Contacts — Safar Setu';
+    loadContacts();
   }, [isAuthenticated]);
 
   const loadContacts = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get('/contacts');
-      if (res.data.success) {
-        setContacts(res.data.contacts);
+    setIsLoading(true);
+    if (isAuthenticated) {
+      try {
+        const res = await api.get('/contacts');
+        if (res.data.success) {
+          setContacts(res.data.contacts);
+          localStorage.setItem('tourist_ice_contacts', JSON.stringify(res.data.contacts));
+        }
+      } catch (err) {
+        console.warn('Failed to load contacts from API, loading local backup', err);
+        const local = localStorage.getItem('tourist_ice_contacts');
+        if (local) {
+          try {
+            setContacts(JSON.parse(local));
+          } catch (e) {}
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.warn('Failed to load contacts', err);
-    } finally {
-      setIsLoading(false);
+    } else {
+      try {
+        const local = localStorage.getItem('tourist_ice_contacts');
+        if (local) {
+          setContacts(JSON.parse(local));
+        } else {
+          const defaultContacts: Contact[] = [
+            {
+              _id: 'local-1',
+              name: 'National Emergency Helpline',
+              phone: '112',
+              relationship: 'All-in-one Emergency Dispatch',
+              isPrimary: true,
+            },
+            {
+              _id: 'local-2',
+              name: 'Tourist Police & Information',
+              phone: '1363',
+              relationship: 'Official Tourist Support',
+              isPrimary: false,
+            },
+          ];
+          setContacts(defaultContacts);
+          localStorage.setItem('tourist_ice_contacts', JSON.stringify(defaultContacts));
+        }
+      } catch (e) {
+        setContacts([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -78,45 +117,93 @@ export const EmergencyContacts: React.FC = () => {
     e.preventDefault();
     setFeedback(null);
 
-    try {
-      if (editingId) {
-        const res = await api.put(`/contacts/${editingId}`, {
-          name,
-          phone,
-          relationship,
-          isPrimary,
-        });
-        if (res.data.success) {
-          setFeedback({ type: 'success', message: 'Contact updated successfully' });
+    if (isAuthenticated) {
+      try {
+        if (editingId && !editingId.startsWith('local-')) {
+          const res = await api.put(`/contacts/${editingId}`, {
+            name,
+            phone,
+            relationship,
+            isPrimary,
+          });
+          if (res.data.success) {
+            setFeedback({ type: 'success', message: 'Contact updated successfully' });
+          }
+        } else {
+          const res = await api.post('/contacts', {
+            name,
+            phone,
+            relationship,
+            isPrimary,
+          });
+          if (res.data.success) {
+            setFeedback({ type: 'success', message: 'Emergency contact added' });
+          }
         }
-      } else {
-        const res = await api.post('/contacts', {
-          name,
-          phone,
-          relationship,
-          isPrimary,
+        setShowModal(false);
+        loadContacts();
+      } catch (err: any) {
+        setFeedback({
+          type: 'error',
+          message: err.response?.data?.message || 'Action failed',
         });
-        if (res.data.success) {
-          setFeedback({ type: 'success', message: 'Emergency contact added' });
-        }
       }
-      setShowModal(false);
-      loadContacts();
-    } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: err.response?.data?.message || 'Action failed',
-      });
+    } else {
+      try {
+        let updated: Contact[] = [...contacts];
+        if (isPrimary) {
+          updated = updated.map((c) => ({ ...c, isPrimary: false }));
+        }
+        if (editingId) {
+          updated = updated.map((c) =>
+            c._id === editingId
+              ? {
+                  ...c,
+                  name,
+                  phone,
+                  relationship,
+                  isPrimary,
+                }
+              : c
+          );
+          setFeedback({ type: 'success', message: 'Contact updated locally' });
+        } else {
+          const newContact: Contact = {
+            _id: `local-${Date.now()}`,
+            name,
+            phone,
+            relationship,
+            isPrimary,
+          };
+          updated.push(newContact);
+          setFeedback({ type: 'success', message: 'Emergency contact added locally' });
+        }
+        setContacts(updated);
+        localStorage.setItem('tourist_ice_contacts', JSON.stringify(updated));
+        setShowModal(false);
+      } catch (err: any) {
+        setFeedback({
+          type: 'error',
+          message: 'Failed to save contact locally',
+        });
+      }
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to remove this emergency contact?')) return;
-    try {
-      await api.delete(`/contacts/${id}`);
-      loadContacts();
-    } catch (err) {
-      console.warn('Failed to delete contact', err);
+    if (isAuthenticated && !id.startsWith('local-')) {
+      try {
+        await api.delete(`/contacts/${id}`);
+        loadContacts();
+      } catch (err) {
+        console.warn('Failed to delete contact', err);
+      }
+    } else {
+      const updated = contacts.filter((c) => c._id !== id);
+      setContacts(updated);
+      localStorage.setItem('tourist_ice_contacts', JSON.stringify(updated));
+      setFeedback({ type: 'success', message: 'Contact removed' });
     }
   };
 
@@ -138,6 +225,20 @@ export const EmergencyContacts: React.FC = () => {
           Add Contact
         </button>
       </div>
+
+      {!isAuthenticated && (
+        <div className="alert alert-info flex items-center justify-between mb-md" style={{ background: '#0f172a', border: '1px solid #334155', color: '#cbd5e1', padding: '0.75rem 1rem', borderRadius: '0.75rem' }}>
+          <div className="flex items-center gap-sm">
+            <Info size={18} color="#38bdf8" />
+            <span className="text-xs">
+              <strong>Device Storage Mode:</strong> Emergency contacts are saved on this phone for instant 1-touch calls &amp; SMS.
+            </span>
+          </div>
+          <Link to="/login?redirect=/contacts" className="text-xs font-bold text-sky-400 hover:underline" style={{ color: '#38bdf8', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
+            Sign In to Sync →
+          </Link>
+        </div>
+      )}
 
       {feedback && (
         <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-error'}`}>

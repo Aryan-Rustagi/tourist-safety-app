@@ -10,7 +10,7 @@ export const Footer: React.FC<{ portal?: 'tourist' | 'admin' }> = ({ portal = 't
           <div className="bg-gray-900 p-1.5 rounded-md border border-gray-800">
             <Shield size={16} className="text-white" />
           </div>
-          <span className="font-bold text-white tracking-wide text-sm">SafeTour Guardian</span>
+          <span className="font-bold text-white tracking-wide text-sm">Safar Setu</span>
         </div>
         
         <p className="text-gray-400 text-xs mb-6 max-w-md mx-auto">
@@ -34,7 +34,7 @@ export const Footer: React.FC<{ portal?: 'tourist' | 'admin' }> = ({ portal = 't
         </div>
         
         <div className="mt-6 pt-6 border-t border-gray-800/50 flex flex-col md:flex-row items-center justify-center gap-2 text-[10px] text-gray-600">
-          <p>© 2026 SafeTour Guardian. SIH 2026.</p>
+          <p>© 2026 Safar Setu. SIH 2026.</p>
           <span className="hidden md:inline">•</span>
           <p>{portal === 'admin' ? 'Police & Rescue Command' : 'Tourist Portal'}</p>
         </div>

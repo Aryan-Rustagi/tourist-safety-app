@@ -64,7 +64,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-white text-base tracking-tight">SafeTour</span>
+                  <span className="font-extrabold text-white text-base tracking-tight">Safar Setu</span>
                   <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded bg-red-600 text-white tracking-widest">
                     ADMIN
                   </span>

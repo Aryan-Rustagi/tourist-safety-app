@@ -51,14 +51,7 @@ export const App: React.FC = () => {
           <Route path="/dashboard" element={<TouristHome />} />
           <Route path="/zones" element={<SafeZones />} />
           <Route path="/report" element={<ReportIncident />} />
-          <Route
-            path="/contacts"
-            element={
-              <ProtectedRoute allowedRoles={['TOURIST']}>
-                <EmergencyContacts />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/contacts" element={<EmergencyContacts />} />
           <Route
             path="/kyc-verification"
             element={

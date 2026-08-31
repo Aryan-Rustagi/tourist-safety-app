@@ -22,7 +22,7 @@ export const SafeZones: React.FC = () => {
   const [evaluatingRisk, setEvaluatingRisk] = useState<boolean>(false);
 
   useEffect(() => {
-    document.title = 'Safety Zones — SafeTour Guardian';
+    document.title = 'Safety Zones — Safar Setu';
     fetchZones();
   }, []);
 

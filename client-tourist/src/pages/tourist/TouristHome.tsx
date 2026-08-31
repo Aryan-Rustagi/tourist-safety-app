@@ -29,7 +29,7 @@ export const TouristHome: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
   useEffect(() => {
-    document.title = 'Dashboard — SafeTour Guardian';
+    document.title = 'Dashboard — Safar Setu';
     loadDashboardData();
   }, []);
 

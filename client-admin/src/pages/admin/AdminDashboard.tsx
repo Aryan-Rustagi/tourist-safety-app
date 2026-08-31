@@ -36,7 +36,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'unverified' | 'verified'>('all');
 
   useEffect(() => {
-    document.title = 'Command Center — SafeTour Admin';
+    document.title = 'Command Center — Safar Setu Admin';
     fetchActiveAlerts();
     loadAllIncidents();
   }, []);

@@ -35,7 +35,7 @@ export const ReportIncident: React.FC = () => {
   const [isLoadingIncidents, setIsLoadingIncidents] = useState(true);
 
   useEffect(() => {
-    document.title = 'Report Incident — SafeTour Guardian';
+    document.title = 'Report Incident — Safar Setu';
     fetchCurrentCoords();
     fetchIncidents();
   }, []);
