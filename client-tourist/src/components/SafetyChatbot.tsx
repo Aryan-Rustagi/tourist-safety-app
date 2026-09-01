@@ -65,9 +65,15 @@ export const SafetyChatbot: React.FC = () => {
     setInput('');
     setIsTyping(true);
 
+    const history = messages
+      .filter(m => m.id !== 'welcome' && !m.id.startsWith('err-'))
+      .map(m => ({ role: m.role, content: m.content }));
+    history.push({ role: 'user', content: text.trim() });
+
     try {
       const res = await api.post('/ai/chat', {
         message: text.trim(),
+        history,
         lat: coords.lat,
         lng: coords.lng,
       });

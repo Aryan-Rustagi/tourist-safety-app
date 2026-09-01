@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth, UserRole } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { Shield, Lock, Mail, AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
-import { GoogleLoginButton } from '../../components/GoogleLoginButton';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -31,14 +30,9 @@ export const Login: React.FC = () => {
   };
 
   // Quick preset loader for test credentials
-  const fillDemoAccount = (role: UserRole) => {
-    if (role === 'TOURIST') {
-      setEmail('tourist@safetour.app');
-      setPassword('password123');
-    } else {
-      setEmail('admin@safetour.app');
-      setPassword('password123');
-    }
+  const fillDemoAccount = () => {
+    setEmail('admin@safetour.app');
+    setPassword('password123');
   };
 
   return (
@@ -107,27 +101,18 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          <div className="auth-divider" style={{ margin: '1.25rem 0 1rem' }}>
-            <span>Or sign in with Google</span>
-          </div>
-
-          <GoogleLoginButton role="ADMIN" text="signin_with" onError={(err) => setErrorMsg(err)} />
-
           {/* Quick Demo Credentials */}
-          <div className="demo-section">
-            <div className="flex items-center gap-sm text-2xs text-muted mb-sm">
+          <div className="demo-section" style={{ marginTop: '1rem' }}>
+            <button
+              type="button"
+              id="demo-admin-btn"
+              onClick={fillDemoAccount}
+              className="btn btn-secondary btn-sm btn-block"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+            >
               <Sparkles size={14} color="#fbbf24" />
-              <span>Fill Quick Demo Credentials:</span>
-            </div>
-            <div className="grid">
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('ADMIN')}
-                className="btn btn-secondary btn-sm btn-block"
-              >
-                Admin
-              </button>
-            </div>
+              <span>Demo</span>
+            </button>
           </div>
         </div>
 

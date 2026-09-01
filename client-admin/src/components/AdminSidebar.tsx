@@ -14,6 +14,7 @@ import {
   ExternalLink,
   X,
   UserCheck,
+  Users,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -189,6 +190,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
             </div>
           </Link>
 
+
+
           {/* Quick Stats Pill */}
           <div className="mt-auto px-3 py-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
             <div className="flex items-center justify-between text-slate-400 mb-1">
@@ -217,14 +220,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={logout}
-              title="Sign Out of Admin Portal"
-              className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800/80 transition-colors"
-            >
-              <LogOut size={17} />
-            </button>
+
           </div>
         </div>
       </aside>

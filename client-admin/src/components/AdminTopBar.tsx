@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Bell, RefreshCw, ShieldAlert, Plus, Search, MapPin } from 'lucide-react';
+import { Menu, Bell, RefreshCw, ShieldAlert, Plus, Search, MapPin, LogOut } from 'lucide-react';
 import { useAlerts } from '../context/AlertContext';
+import { useAuth } from '../context/AuthContext';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 
 interface AdminTopBarProps {
@@ -14,6 +15,7 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
   onRefresh,
   isRefreshing = false,
 }) => {
+  const { logout } = useAuth();
   const { activeAlerts } = useAlerts();
   const location = useLocation();
   const navigate = useNavigate();
@@ -116,6 +118,18 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
           <Plus size={15} />
           <span>Manage Zones</span>
         </Link>
+
+        {/* Prominent Sign Out Button */}
+        <button
+          type="button"
+          onClick={logout}
+          className="admin-btn-logout"
+          title="Sign Out of Admin Portal"
+          id="admin-topbar-logout-btn"
+        >
+          <LogOut size={14} />
+          <span>Sign Out</span>
+        </button>
       </div>
     </header>
   );
