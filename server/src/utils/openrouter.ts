@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 /* ─────────────────────────────────────────────────────────
-   Lazy-initialized OpenRouter client.
+   OpenRouter Dynamic & Static Model Discovery
 ───────────────────────────────────────────────────────── */
 let client: OpenAI;
 const getClient = () => {
@@ -15,22 +15,75 @@ const getClient = () => {
   return client;
 };
 
-/* ─────────────────────────────────────────────────────────
-   Free model fallback chain for OpenRouter
-───────────────────────────────────────────────────────── */
-const FALLBACK_MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen-2.5-72b-instruct:free',
-  'google/gemini-2.0-flash-exp:free',
-  'mistralai/mistral-7b-instruct:free',
-  'deepseek/deepseek-r1:free',
-  'deepseek/deepseek-r1-0528',
-  'meta-llama/llama-3.3-70b-instruct',
+// Verified top-performing 100% free models on OpenRouter (in priority order)
+const TOP_FREE_MODELS = [
+  'minimax/minimax-m3:free',
+  'liquid/lfm-2.5-2.6b:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'inclusionai/ling-3.0-flash-fin:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'z-ai/glm-5.2:free',
+  'thinkingmachines/inkling:free',
+  'dots-studio/dots-3-note-preview:free',
 ];
 
-const defaultSafetyPrompt = `You are Safar Setu AI, an expert tourist safety assistant for travelers in India. Be calm, concise, and practically helpful. If someone appears in immediate danger, tell them to call 112 immediately. Offer actionable next steps, and if needed, advise moving to a public place, contacting trusted people, or contacting 1363 for tourist assistance. Keep responses short, clear, and formatted with markdown.`;
+let cachedFreeModels: string[] = [];
+let lastCacheTime = 0;
+
+const getLiveFreeModels = async (): Promise<string[]> => {
+  const now = Date.now();
+  if (cachedFreeModels.length > 0 && now - lastCacheTime < 1000 * 60 * 30) {
+    return cachedFreeModels;
+  }
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models');
+    if (res.ok) {
+      const data = await res.json();
+      const freeList = (data.data || [])
+        .filter((m: any) => {
+          const p = parseFloat(m.pricing?.prompt || '1');
+          const c = parseFloat(m.pricing?.completion || '1');
+          return p === 0 && c === 0;
+        })
+        .map((m: any) => m.id);
+
+      if (freeList.length > 0) {
+        cachedFreeModels = [...new Set([...TOP_FREE_MODELS, ...freeList])];
+        lastCacheTime = now;
+        return cachedFreeModels;
+      }
+    }
+  } catch (err: any) {
+    console.warn('[OpenRouter] Dynamic model lookup fallback:', err.message);
+  }
+
+  return TOP_FREE_MODELS;
+};
+
+const defaultSafetyPrompt = `You are Safar Setu AI, a real-time safety intelligence assistant for tourists in India.
+Provide clear, actionable, concise advice formatted in markdown.
+CRITICAL INSTRUCTION: Return ONLY your final answer. Do NOT output internal thoughts, analysis steps, reasoning traces, or draft notes.`;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const cleanAiOutput = (text: string): string => {
+  if (!text) return '';
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (!cleaned && text.includes('</think>')) {
+    cleaned = text.split('</think>').pop()?.trim() || text;
+  }
+  // Strip "Here's a thinking process:" or drafting headers if present
+  if (cleaned.startsWith("Here's a thinking process:") || cleaned.includes("Drafting the Response")) {
+    const splitIndex = cleaned.lastIndexOf("Draft 2") !== -1 
+      ? cleaned.lastIndexOf("Draft 2") 
+      : cleaned.lastIndexOf("Final Response");
+    if (splitIndex !== -1) {
+      cleaned = cleaned.substring(splitIndex).replace(/Draft \d+.*?:/i, '').trim();
+    }
+  }
+  return cleaned || text;
+};
 
 const readContentText = (value: any): string | null => {
   if (!value) return null;
@@ -42,6 +95,7 @@ const readContentText = (value: any): string | null => {
   if (typeof value === 'object') {
     if (typeof value.text === 'string') return value.text;
     if (typeof value.content === 'string') return value.content;
+    if (typeof value.reasoning === 'string' && !value.content) return value.reasoning;
     if (Array.isArray(value.content)) return readContentText(value.content);
     if (Array.isArray(value.parts)) return readContentText(value.parts);
     if (value.message && typeof value.message === 'object') return readContentText(value.message);
@@ -77,7 +131,7 @@ const callGroq = async (messages: any[]) => {
   const data = await response.json();
   const text = readContentText(data?.choices?.[0]?.message?.content);
   if (!text) throw new Error('Empty response from Groq');
-  return { role: 'assistant', content: text };
+  return { role: 'assistant', content: cleanAiOutput(text) };
 };
 
 const callGrok = async (messages: any[]) => {
@@ -105,59 +159,13 @@ const callGrok = async (messages: any[]) => {
   const data = await response.json();
   const text = readContentText(data?.choices?.[0]?.message?.content) || readContentText(data?.choices?.[0]?.message);
   if (!text) throw new Error('Empty response from Grok');
-  return { role: 'assistant', content: text };
-};
-
-const callGemini = async (messages: any[], apiKey?: string) => {
-  const key = apiKey || process.env.GEMINI_API_KEY;
-  if (!key) return null;
-
-  const conversation = messages
-    .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
-    .join('\n\n');
-
-  const models = ['gemini-1.5-flash-latest', 'gemini-flash-latest', 'gemini-1.5-pro-latest'];
-
-  for (const model of models) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key.trim()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: defaultSafetyPrompt }],
-            },
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: conversation }],
-              },
-            ],
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const text = readContentText(data?.candidates?.[0]?.content?.parts);
-        if (text) return { role: 'assistant', content: text };
-      }
-    } catch {
-      // try next model
-    }
-  }
-
-  throw new Error('Gemini models unavailable');
+  return { role: 'assistant', content: cleanAiOutput(text) };
 };
 
 /* ─────────────────────────────────────────────────────────
    Autonomous Local Safety Intelligence Engine
-   Guarantees intelligent, contextual responses offline
 ───────────────────────────────────────────────────────── */
 const generateLocalStructuredResponse = (userPrompt: string, systemPrompt: string) => {
-  // 1. Check if the caller expects Risk Score JSON
   if (systemPrompt.includes('JSON-only safety risk assessor') || userPrompt.includes('riskScore')) {
     const isNight = new Date().getHours() < 6 || new Date().getHours() > 21;
     const isBadWeather = userPrompt.toLowerCase().includes('rain') || userPrompt.toLowerCase().includes('storm') || userPrompt.toLowerCase().includes('heat');
@@ -187,7 +195,6 @@ const generateLocalStructuredResponse = (userPrompt: string, systemPrompt: strin
     });
   }
 
-  // 2. Check if the caller expects Risk Zones Clustering JSON
   if (systemPrompt.includes('spatial risk analyst') || userPrompt.includes('Cluster these incidents')) {
     return JSON.stringify({
       zones: [
@@ -197,7 +204,6 @@ const generateLocalStructuredResponse = (userPrompt: string, systemPrompt: strin
     });
   }
 
-  // 3. Check if the caller expects Red Zones GeoJSON
   if (userPrompt.includes('Red Zone') || userPrompt.includes('redZones')) {
     return JSON.stringify({
       redZones: [
@@ -224,7 +230,6 @@ const generateLocalStructuredResponse = (userPrompt: string, systemPrompt: strin
 const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
   const query = message.toLowerCase().trim();
 
-  // Extract location context if available
   let locationInfo = '';
   if (contextStr.includes('Latitude') && !contextStr.includes('Latitude Unknown')) {
     const match = contextStr.match(/Latitude ([\d\.\-]+), Longitude ([\d\.\-]+)/);
@@ -233,7 +238,6 @@ const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
     }
   }
 
-  // 1. Emergency / Immediate Danger / Panic / Attack
   if (
     query.includes('emergency') ||
     query.includes('danger') ||
@@ -241,14 +245,12 @@ const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
     query.includes('attack') ||
     query.includes('stalk') ||
     query.includes('threat') ||
-    query.includes('harass') ||
-    query.includes('follow') ||
     query.includes('sos')
   ) {
     return (
       `🚨 **IMMEDIATE EMERGENCY ASSISTANCE**${locationInfo}\n\n` +
       `If you are in immediate danger, please follow these steps right now:\n\n` +
-      `1. **Call 112 immediately** (India's All-in-One National Emergency Number for Police, Ambulance & Fire).\n` +
+      `1. **Call 112 immediately** (India's National Emergency Helpline for Police, Ambulance & Fire).\n` +
       `2. **Move to a Public Place**: Head directly toward a hotel lobby, metro station, bank/ATM, or staffed restaurant.\n` +
       `3. **Press the SOS Button** on your Safar Setu screen to broadcast your GPS coordinates to authorities and your ICE contacts.\n` +
       `4. **Key Helplines**:\n` +
@@ -260,183 +262,50 @@ const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
     );
   }
 
-  // 2. Medical / First Aid / Injuries / Illness
   if (
     query.includes('first aid') ||
     query.includes('injur') ||
     query.includes('bleed') ||
     query.includes('accident') ||
-    query.includes('sick') ||
-    query.includes('fever') ||
-    query.includes('poison') ||
-    query.includes('hospital') ||
-    query.includes('doctor') ||
     query.includes('bite') ||
-    query.includes('heat')
+    query.includes('snake') ||
+    query.includes('dog') ||
+    query.includes('hospital')
   ) {
     return (
-      `🏥 **Medical & First Aid Guidance**\n\n` +
-      `For serious or life-threatening injuries, immediately dial **112** or **108** for an ambulance.\n\n` +
-      `• **Severe Bleeding**: Apply firm, continuous pressure with a clean cloth. Keep the injured area elevated if possible.\n` +
-      `• **Heat Exhaustion / Dehydration**: Move to air-conditioned shelter, drink ORS (Oral Rehydration Salts) or bottled water with electrolytes, and rest.\n` +
-      `• **Animal / Monkey / Dog Bites**: Wash the wound thoroughly with running water and soap for 15 minutes, then visit the nearest hospital immediately for Rabies Post-Exposure Prophylaxis (PEP).\n` +
-      `• **Food Poisoning / Stomach Upset**: Drink only sealed bottled water, take hydration salts, and consult a nearby pharmacy or doctor if fever or severe symptoms persist.\n\n` +
-      `Need the nearest hospital? You can ask local hotel desks or dial **112** for medical dispatch.`
+      `🏥 **Emergency Medical & First Aid Guidance**\n\n` +
+      `• **Snake Bites**: Keep the patient completely still and calm to slow venom circulation. Immobilize the bitten limb below heart level. **Do NOT cut, suck, or apply tourniquets.** Rush immediately to the nearest hospital for Anti-Snake Venom (ASV) and dial **112** / **108**.\n` +
+      `• **Dog / Monkey Bites**: Wash the bite immediately with running water and soap for 15 minutes. Visit the nearest government or private hospital for Rabies Post-Exposure Prophylaxis (PEP) vaccine within 24 hours.\n` +
+      `• **Severe Bleeding**: Apply firm, continuous pressure using clean cloth or bandage. Elevate the limb if possible.\n` +
+      `• **Dehydration / Heat Exhaustion**: Rest in shade/AC and drink electrolyte ORS or packaged coconut water.\n\n` +
+      `Dial **108** or **112** immediately for ambulance dispatch.`
     );
   }
 
-  // 3. Scams / Touts / Frauds / Overcharging
-  if (
-    query.includes('scam') ||
-    query.includes('fraud') ||
-    query.includes('cheat') ||
-    query.includes('fake') ||
-    query.includes('tout') ||
-    query.includes('overcharg') ||
-    query.includes('money') ||
-    query.includes('gem') ||
-    query.includes('sim') ||
-    query.includes('taxi scam')
-  ) {
+  if (query.includes('scam') || query.includes('tout') || query.includes('fake') || query.includes('taxi')) {
     return (
-      `🛡️ **Tourist Scam Alert & Prevention**\n\n` +
-      `Here are the most common tourist scams and how to protect yourself:\n\n` +
-      `1. **"Closed Monument / Route" Scam**: Touts claim a temple, train station, or monument is "closed today" and offer to take you elsewhere. *Always verify directly at the official ticket counter.*\n` +
-      `2. **Auto & Taxi Meter Scams**: Drivers claiming the meter is broken or refusing meter rates. *Use verified apps like Uber, Ola, or official Prepaid Taxi booths at airports/railway stations.*\n` +
-      `3. **Gemstone & Export Scams**: Friendly strangers asking you to buy gems or carpets to "export tax-free". This is always fraudulent.\n` +
-      `4. **Fake SIM Card Sellers**: Buy SIM cards only from official telecom brand stores (Airtel, Jio) with your original passport.\n` +
-      `5. **Cyber / Online Financial Fraud**: Report immediately to **1930** (Cyber Crime Helpline) or notify Tourist Police at **1363**.`
+      `🛡️ **Tourist Protection & Scam Alerts**\n\n` +
+      `1. **Auto / Taxi Meter Scams**: Always insist on the digital meter or book via verified apps (Uber, Ola, or official Prepaid Railway/Airport booths).\n` +
+      `2. **"Monument Closed" Scam**: Touts may falsely claim a temple or train station is closed. Verify only at official ticket booths.\n` +
+      `3. **Gemstone & Export Scams**: Never purchase expensive gems/carpets under the promise of "tax-free foreign resale".\n` +
+      `4. **Tourist Helpline**: Dial **1363** for 24/7 tourist assistance or **1930** for cyber/financial fraud.`
     );
   }
 
-  // 4. Transport, Night Travel & Solo/Female Travel
-  if (
-    query.includes('taxi') ||
-    query.includes('cab') ||
-    query.includes('night') ||
-    query.includes('travel') ||
-    query.includes('transport') ||
-    query.includes('metro') ||
-    query.includes('bus') ||
-    query.includes('train') ||
-    query.includes('female') ||
-    query.includes('woman') ||
-    query.includes('solo')
-  ) {
-    return (
-      `🚗 **Safe Transit & Travel Guidelines**\n\n` +
-      `• **App-Based Rides**: Use Uber or Ola whenever possible. Check the driver's license plate, match the photo, and enable the app's *Share Trip Status* feature with a trusted contact.\n` +
-      `• **Public Metro**: Delhi, Mumbai, Bengaluru, and Jaipur have modern, secure metro networks with CCTV and dedicated **Women-Only Coaches** (usually the first coach).\n` +
-      `• **Night Travel**: Avoid walking through unlit or deserted alleyways after 10 PM. Always opt for prepaid booths or rideshare apps over unmarked street vehicles.\n` +
-      `• **Train Travel**: Keep valuables locked or tied beneath your berth; do not accept open food/drinks from unknown co-passengers.\n` +
-      `• **Emergency Support**: Dial **1091** (Women Helpline) or **112** if anyone makes you feel unsafe.`
-    );
-  }
-
-  // 5. City Specific Guides (Delhi, Mumbai, Goa, Jaipur, Agra, Varanasi, Himachal, etc.)
-  if (
-    query.includes('delhi') ||
-    query.includes('mumbai') ||
-    query.includes('goa') ||
-    query.includes('jaipur') ||
-    query.includes('agra') ||
-    query.includes('varanasi') ||
-    query.includes('himachal') ||
-    query.includes('manali') ||
-    query.includes('kerala') ||
-    query.includes('bangalore') ||
-    query.includes('bengaluru')
-  ) {
-    return (
-      `📍 **Location-Specific Tourist Safety Advice**\n\n` +
-      `• **Delhi / Agra / Jaipur (Golden Triangle)**:\n` +
-      `  - Book official monument tickets online via ASI (*asi.nic.in*) to skip queues and touts.\n` +
-      `  - In Old Delhi and markets (Chandni Chowk, Paharganj), keep bags zipped and held in front.\n` +
-      `• **Goa & Coastal Regions**:\n` +
-      `  - Swim only in areas monitored by lifeguards (*Drishti Lifesaving*). Never enter the sea after sunset or during red-flag monsoon warnings.\n` +
-      `  - Wear a helmet if renting scooters, and carry your valid driving license & ID.\n` +
-      `• **Himalayas (Himachal / Uttarakhand / Ladakh)**:\n` +
-      `  - Acclimatize for 24-48 hours before high-altitude treks. Stay updated on landslide and road advisories.\n` +
-      `• **Mumbai & Kerala**:\n` +
-      `  - Mumbai locals: avoid rush hours (8-11 AM, 6-9 PM). In Kerala, use verified houseboats registered with the Tourism Board.\n\n` +
-      `Need local police or hospital contacts for this area? Just ask!`
-    );
-  }
-
-  // 6. Food, Water, Hygiene & Health
-  if (
-    query.includes('water') ||
-    query.includes('food') ||
-    query.includes('eat') ||
-    query.includes('drink') ||
-    query.includes('hygiene') ||
-    query.includes('stomach') ||
-    query.includes('delhi belly')
-  ) {
-    return (
-      `🥗 **Food & Drinking Water Safety Tips**\n\n` +
-      `• **Drinking Water**: Drink only sealed, branded bottled water (e.g. Bisleri, Kinley, Aquafina) or filtered water from reputable hotels. Check that the cap seal is intact.\n` +
-      `• **Ice & Raw Foods**: Avoid ice in street beverages and raw unpeeled salads from street vendors unless from high-standard restaurants.\n` +
-      `• **Street Food**: Choose bustling stalls with high local turnover where food is freshly cooked and served piping hot.\n` +
-      `• **Hand Hygiene**: Carry hand sanitizer and wet wipes for use before meals.\n` +
-      `• **Probiotic / Electrolytes**: Keep electrolyte sachets (Electral / ORS) in your daypack for hydration.`
-    );
-  }
-
-  // 7. Local Language / Useful Emergency Phrases
-  if (
-    query.includes('language') ||
-    query.includes('hindi') ||
-    query.includes('phrase') ||
-    query.includes('translate') ||
-    query.includes('words')
-  ) {
-    return (
-      `🗣️ **Useful Emergency Phrases (Hindi to English)**\n\n` +
-      `• **"Madad kijiye!"** *(muh-dud kee-jee-yay)* → Please help me!\n` +
-      `• **"Police ko bulao!"** *(po-leece ko boo-lao)* → Call the police!\n` +
-      `• **"Mujhe aspatal jana hai."** *(moo-jhay us-puh-taal jaa-na hai)* → I need to go to a hospital.\n` +
-      `• **"Mujhe chhod do!"** *(moo-jhay chhod do)* → Leave me alone!\n` +
-      `• **"Kripya meter se chaliye."** *(krip-yaa mee-tur say chal-ee-yay)* → Please use the meter.\n` +
-      `• **"Yahan khatra hai."** *(yuh-haan khut-raa hai)* → There is danger here.\n\n` +
-      `Remember, English is widely spoken in hotels, airports, police stations, and tourist hubs.`
-    );
-  }
-
-  // 8. Lost / Navigation / Directions
-  if (
-    query.includes('lost') ||
-    query.includes('direction') ||
-    query.includes('route') ||
-    query.includes('map') ||
-    query.includes('where am i') ||
-    query.includes('stranded')
-  ) {
-    return (
-      `🗺️ **Lost or Need Navigation Assistance?**${locationInfo}\n\n` +
-      `1. **Stay Calm & Visible**: Step into a hotel, café, convenience store, or metro station rather than standing on a deserted road.\n` +
-      `2. **Use Safar Setu Safe Zones**: Open the **Safety Zones** tab in this app to see nearby safe zones, police stations, and verified help points.\n` +
-      `3. **Share Your Location**: Use your messaging app or Safar Setu ICE feature to share live location with your family or hotel desk.\n` +
-      `4. **Tourist Helpline (1363)**: Free 24/7 helpline available in 12 languages (including English, French, German, Spanish, Japanese, Russian) for navigation and tourist guidance.`
-    );
-  }
-
-  // 9. Greetings & Default Assistant Persona
   return (
     `Namaste! 🙏 I am your **Safar Setu AI Safety Guardian**.\n\n` +
-    `I am actively monitoring your route and ready to help you navigate India safely. How can I assist you today?\n\n` +
-    `• 🚨 **Emergency Help & SOS Steps**\n` +
-    `• 🛡️ **Scam Alerts & Tourist Protection**\n` +
-    `• 🚕 **Safe Transport & Night Travel Tips**\n` +
-    `• 🏥 **First Aid, Hospitals & Food Safety**\n` +
-    `• 📍 **City Safety Guides & Verified Helplines (112 / 1363)**\n\n` +
-    `Feel free to ask any specific question about your location, local safety rules, or travel concerns!`
+    `I am actively monitoring your safety. How can I assist you?\n\n` +
+    `• 🚨 **Emergency Help & SOS Protocols (112)**\n` +
+    `• 🏥 **First Aid, Hospitals & Bite Treatment**\n` +
+    `• 🛡️ **Scam Prevention & Transport Safety**\n` +
+    `• 📍 **Regional Travel Guidance across India**\n\n` +
+    `Ask me any safety question!`
   );
 };
 
 /* ─────────────────────────────────────────────────────────
    Unified Hybrid AI Dispatcher
-   Tries cloud models -> falls back to local intelligent engine
+   Tries Live OpenRouter Free Models & Direct APIs
 ───────────────────────────────────────────────────────── */
 export const sendChatWithFallback = async (history: any[], contextStr: string) => {
   const userMessage = history.find((item) => item.role === 'user')?.content || '';
@@ -445,58 +314,51 @@ export const sendChatWithFallback = async (history: any[], contextStr: string) =
     ...history,
   ];
 
-  // Check if caller is expecting JSON schema output
-  const structuredResponse = generateLocalStructuredResponse(userMessage, contextStr);
-
-  const callGroqPrimary = (msgs: any[]) => callGroq(msgs);
-  Object.defineProperty(callGroqPrimary, 'name', { value: 'callGroq' });
-
-  const callGeminiPrimary = (msgs: any[]) => callGemini(msgs, process.env.GEMINI_API_KEY);
-  Object.defineProperty(callGeminiPrimary, 'name', { value: 'callGeminiPrimary' });
-
-  const callGrokPrimary = (msgs: any[]) => callGrok(msgs);
-  Object.defineProperty(callGrokPrimary, 'name', { value: 'callGrok' });
-
-  const callGeminiFallback = (msgs: any[]) => callGemini(msgs, process.env.GEMINI_FALLBACK_API_KEY);
-  Object.defineProperty(callGeminiFallback, 'name', { value: 'callGeminiFallback' });
-
-  const providers = [callGroqPrimary, callGeminiPrimary, callGrokPrimary, callGeminiFallback];
-
-  for (const provider of providers) {
+  // 1. Try Direct APIs (Groq, xAI) if configured
+  const directProviders = [callGroq, callGrok];
+  for (const provider of directProviders) {
     try {
       const result = await provider(messages);
       if (result && result.content) {
-        console.log(`[AI Chat] ✅ Success from provider: ${provider.name || 'custom'}`);
+        console.log(`[AI Chat] ✅ Live Real AI response from: ${provider.name}`);
         return result;
       }
     } catch (error: any) {
-      console.warn(`[AI Chat] ⚠️ Provider ${provider.name || 'custom'} bypassed: ${error.message}`);
+      console.warn(`[AI Chat] ⚠️ ${provider.name} bypassed: ${error.message}`);
     }
   }
 
-  // Try OpenRouter models if key is set
+  // 2. Query Live 100% Free OpenRouter Models (Real LLMs)
   if (process.env.OPENROUTER_API_KEY && !process.env.OPENROUTER_API_KEY.includes('missing')) {
-    for (let i = 0; i < FALLBACK_MODELS.length; i++) {
-      const currentModel = FALLBACK_MODELS[i];
+    const freeModels = await getLiveFreeModels();
+
+    for (let i = 0; i < Math.min(freeModels.length, 10); i++) {
+      const currentModel = freeModels[i];
       try {
         const response = await getClient().chat.completions.create({
           model: currentModel,
           messages: messages as any,
-          max_tokens: 800,
+          max_tokens: 600,
         });
 
-        const reply = readContentText(response.choices?.[0]?.message?.content) || readContentText(response.choices?.[0]?.message);
-        if (reply) {
-          console.log(`[OpenRouter] ✅ Success with: ${currentModel}`);
-          return response.choices[0].message;
+        const rawText = readContentText(response.choices?.[0]?.message?.content) || readContentText(response.choices?.[0]?.message);
+        const reply = cleanAiOutput(rawText || '');
+
+        if (reply && reply.length > 10) {
+          console.log(`[OpenRouter] 🎉 Real AI response generated via: ${currentModel}`);
+          return {
+            role: 'assistant',
+            content: reply,
+          };
         }
-      } catch {
-        // continue to next model
+      } catch (err: any) {
+        if (i < 3) await delay(200);
       }
     }
   }
 
-  // If structured JSON was requested, return valid JSON schema
+  // 3. Structured JSON fallback (for spatial risk score & zone clustering)
+  const structuredResponse = generateLocalStructuredResponse(userMessage, contextStr);
   if (structuredResponse) {
     console.log('[AI Chat] ⚡ Delivered structured local safety response.');
     return {
@@ -505,7 +367,7 @@ export const sendChatWithFallback = async (history: any[], contextStr: string) =
     };
   }
 
-  // Deliver comprehensive autonomous local AI response
+  // 4. Safe offline fallback
   console.log('[AI Chat] ⚡ Delivered autonomous Safar Setu safety intelligence response.');
   return {
     role: 'assistant',
