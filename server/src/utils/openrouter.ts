@@ -154,7 +154,7 @@ export const sendChatWithFallback = async (history: any[], contextStr: string) =
   const callGeminiFallback = (msgs: any[]) => callGemini(msgs, process.env.GEMINI_FALLBACK_API_KEY);
   Object.defineProperty(callGeminiFallback, 'name', { value: 'callGeminiFallback' });
 
-  const providers = [callGrok, callGeminiPrimary, callGeminiFallback];
+  const providers = [callGeminiPrimary, callGrok, callGeminiFallback];
 
   for (const provider of providers) {
     try {

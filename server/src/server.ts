@@ -105,6 +105,16 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Global Error Handler
 app.use(errorHandler);
 
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException] Fatal error:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[unhandledRejection] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // Start Server & Connect to DB
 const startServer = async () => {
   try {

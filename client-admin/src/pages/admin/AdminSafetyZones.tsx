@@ -31,7 +31,7 @@ export const AdminSafetyZones: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
-    document.title = 'Safety Perimeters — SafeTour Admin';
+    document.title = 'Safety Perimeters — Safar Setu Admin';
     fetchZones();
   }, []);
 

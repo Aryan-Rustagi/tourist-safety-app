@@ -37,7 +37,7 @@ export const LandingPage: React.FC = () => {
   const [regError, setRegError] = useState('');
 
   useEffect(() => {
-    document.title = 'SafeTour Guardian — Tourist Safety Platform';
+    document.title = 'Safar Setu — Tourist Safety Platform';
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -126,7 +126,7 @@ export const LandingPage: React.FC = () => {
                 marginBottom: '2.5rem',
                 maxWidth: 480,
               }}>
-                SafeTour Guardian connects tourists to emergency SOS, safety zone maps,
+                Safar Setu connects tourists to emergency SOS, safety zone maps,
                 ICE contacts, and a live police dispatch console — real-time, every time.
               </p>
 

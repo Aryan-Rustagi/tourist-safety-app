@@ -21,8 +21,8 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
+  register: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<{ success: boolean; message?: string; user?: User }>;
   loginWithGoogle: (credential: string, role?: UserRole) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(receivedUser);
         localStorage.setItem('tourist_safety_token', receivedToken);
         localStorage.setItem('tourist_safety_user', JSON.stringify(receivedUser));
-        return { success: true };
+        return { success: true, user: receivedUser };
       }
       return { success: false, message: res.data.message || 'Login failed' };
     } catch (err: any) {
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(receivedUser);
         localStorage.setItem('tourist_safety_token', receivedToken);
         localStorage.setItem('tourist_safety_user', JSON.stringify(receivedUser));
-        return { success: true };
+        return { success: true, user: receivedUser };
       }
       return { success: false, message: res.data.message || 'Registration failed' };
     } catch (err: any) {

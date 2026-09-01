@@ -7,6 +7,10 @@ import { useAuth } from './context/AuthContext';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminSafetyZones } from './pages/admin/AdminSafetyZones';
 import { AdminTourists } from './pages/admin/AdminTourists';
+import { TouristHome } from './pages/tourist/TouristHome';
+import { SafeZones } from './pages/tourist/SafeZones';
+import { ReportIncident } from './pages/tourist/ReportIncident';
+import { EmergencyContacts } from './pages/tourist/EmergencyContacts';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { LayoutWrapper } from './components/LayoutWrapper';
@@ -44,17 +48,68 @@ const ProtectedRoute: React.FC<{
 export const App: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const isAdmin = isAuthenticated && user?.role === 'ADMIN';
+  const isTourist = isAuthenticated && user?.role === 'TOURIST';
 
   return (
     <Routes>
-      {/* Authenticated Admin Views wrapped in modern Left Sidebar AdminLayout */}
+      {/* Root Path - Dispatches to Admin Dashboard or Tourist Dashboard */}
       <Route
         path="/"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <AdminLayout>
-              <AdminDashboard />
-            </AdminLayout>
+          <ProtectedRoute allowedRoles={['ADMIN', 'TOURIST']}>
+            {isAdmin ? (
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            ) : (
+              <div className="app-wrapper">
+                <Navbar />
+                <main className="main-content">
+                  <LayoutWrapper>
+                    <TouristHome />
+                  </LayoutWrapper>
+                </main>
+                <Footer portal="tourist" />
+              </div>
+            )}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN', 'TOURIST']}>
+            {isAdmin ? (
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            ) : (
+              <div className="app-wrapper">
+                <Navbar />
+                <main className="main-content">
+                  <LayoutWrapper>
+                    <TouristHome />
+                  </LayoutWrapper>
+                </main>
+                <Footer portal="tourist" />
+              </div>
+            )}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <ProtectedRoute allowedRoles={['TOURIST', 'ADMIN']}>
+            <div className="app-wrapper">
+              <Navbar />
+              <main className="main-content">
+                <LayoutWrapper>
+                  <ReportIncident />
+                </LayoutWrapper>
+              </main>
+              <Footer portal="tourist" />
+            </div>
           </ProtectedRoute>
         }
       />
@@ -78,12 +133,26 @@ export const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/contacts"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminLayout>
+              <EmergencyContacts />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/ice" element={<Navigate to="/contacts" replace />} />
+      <Route path="/ice-contacts" element={<Navigate to="/contacts" replace />} />
+      <Route path="/emergency-contacts" element={<Navigate to="/contacts" replace />} />
+      <Route path="/contact" element={<Navigate to="/contacts" replace />} />
 
       {/* Auth Views */}
       <Route
         path="/login"
         element={
-          isAdmin ? (
+          isAuthenticated ? (
             <Navigate to="/" replace />
           ) : (
             <div className="app-wrapper flex items-center justify-center min-h-screen bg-slate-950 p-4">
@@ -95,7 +164,7 @@ export const App: React.FC = () => {
       <Route
         path="/register"
         element={
-          isAdmin ? (
+          isAuthenticated ? (
             <Navigate to="/" replace />
           ) : (
             <div className="app-wrapper flex items-center justify-center min-h-screen bg-slate-950 p-4">

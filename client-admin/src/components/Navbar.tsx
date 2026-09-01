@@ -44,7 +44,7 @@ export const Navbar: React.FC = () => {
           <div className="navbar-brand-icon">
             <Shield size={22} color="#fff" />
           </div>
-          <span className="navbar-brand-text">SafeTour</span>
+          <span className="navbar-brand-text">Safar Setu</span>
           <span className="navbar-portal-badge badge badge-rose">Admin</span>
         </Link>
 
