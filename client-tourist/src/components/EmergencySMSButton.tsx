@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
   Loader2,
@@ -6,10 +6,11 @@ import {
   Copy,
   Check,
   Radio,
-  ExternalLink,
   ShieldAlert,
   Send,
   X,
+  MapPinOff,
+  MapPin,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -26,24 +27,52 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [smsPayload, setSmsPayload] = useState<string>('');
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.209 });
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'acquired' | 'failed' | 'idle'>('idle');
   const [simulating, setSimulating] = useState(false);
   const [simulatedSuccess, setSimulatedSuccess] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const generateSOS = (lat: number, lng: number) => {
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const getSmsUri = (phone: string, message: string) => {
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const separator = isIOS ? '&' : '?';
+    return `sms:${phone}${separator}body=${encodeURIComponent(message)}`;
+  };
+
+  const generateSOS = (lat: number | null, lng: number | null, isLocationAcquired: boolean) => {
     const userId = user?.id || user?.blockchainId?.substring(0, 24) || '65f2a1b00000000000000001';
-    const message = `ID:${userId}|LAT:${lat.toFixed(6)}|LNG:${lng.toFixed(6)}|SOS`;
-    setSmsPayload(message);
-    setCoords({ lat, lng });
-
-    // Open Native SMS on devices that support it
-    const encoded = encodeURIComponent(message);
-    const smsUri = `sms:${phoneNumber}?body=${encoded}`;
     
+    let message: string;
+    if (isLocationAcquired && lat !== null && lng !== null) {
+      message = `ID:${userId}|LAT:${lat.toFixed(6)}|LNG:${lng.toFixed(6)}|SOS`;
+      setCoords({ lat, lng });
+      setGpsStatus('acquired');
+    } else {
+      // Explicitly mark coordinates as unavailable - NEVER spoof hardcoded city coordinates
+      message = `ID:${userId}|LAT:0.000000|LNG:0.000000|LOC:UNAVAILABLE|SOS`;
+      setCoords(null);
+      setGpsStatus('failed');
+    }
+
+    setSmsPayload(message);
+
+    // Trigger SMS URI scheme
+    const smsUri = getSmsUri(phoneNumber, message);
     try {
       const link = document.createElement('a');
       link.href = smsUri;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (e) {
       console.log('Native SMS URI trigger handled via modal fallback');
     }
@@ -55,44 +84,61 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
   const handleSendSOS = () => {
     setLoading(true);
     setSimulatedSuccess(false);
+    setSimulationError(null);
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          generateSOS(position.coords.latitude, position.coords.longitude);
+          generateSOS(position.coords.latitude, position.coords.longitude, true);
         },
         (err) => {
-          console.warn('Geolocation failed or timed out, using fallback coordinate:', err.message);
-          // Graceful fallback to default coordinates so SOS is never blocked
-          generateSOS(28.6139, 77.209);
+          console.warn('Geolocation failed or permission denied, flagging location as unavailable:', err.message);
+          // Pass null coordinates so SOS is never blocked, but location is explicitly marked unavailable
+          generateSOS(null, null, false);
         },
         {
           enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 60000,
+          timeout: 10000,
+          maximumAge: 30000,
         }
       );
     } else {
-      generateSOS(28.6139, 77.209);
+      generateSOS(null, null, false);
     }
   };
 
-  const handleCopyPayload = () => {
-    navigator.clipboard.writeText(smsPayload);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopyPayload = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(smsPayload);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = smsPayload;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy payload to clipboard:', err);
+    }
   };
 
   const handleSimulateGatewayWebhook = async () => {
     try {
       setSimulating(true);
+      setSimulationError(null);
       await api.post('/sms-webhook', {
         from: user?.phone || '+919876543210',
         body: smsPayload,
       });
       setSimulatedSuccess(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to trigger SMS webhook simulation:', err);
+      setSimulationError(err.response?.data?.message || err.message || 'Failed to simulate GSM webhook');
     } finally {
       setSimulating(false);
     }
@@ -127,6 +173,9 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
       {/* Emergency Modal / Sheet */}
       {showModal && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="emergency-modal-title"
           style={{
             position: 'fixed',
             inset: 0,
@@ -137,6 +186,9 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
             padding: '1rem',
             background: 'rgba(15, 23, 42, 0.85)',
             backdropFilter: 'blur(8px)',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
           }}
         >
           <div
@@ -156,7 +208,7 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldAlert size={24} className="text-red-500 animate-pulse" />
                 <div>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                  <h3 id="emergency-modal-title" style={{ fontSize: '1.125rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
                     Offline Emergency SOS Dispatched
                   </h3>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>2G GSM Cellular Fallback Channel</span>
@@ -166,10 +218,57 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
                 type="button"
                 onClick={() => setShowModal(false)}
                 style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.25rem' }}
+                aria-label="Close dialog"
               >
                 <X size={20} />
               </button>
             </div>
+
+            {/* GPS Warning Banner if GPS Lock Failed */}
+            {gpsStatus === 'failed' && (
+              <div style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                borderRadius: '0.75rem',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
+                color: '#fcd34d',
+                fontSize: '0.75rem',
+                lineHeight: 1.4,
+              }}>
+                <MapPinOff size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ display: 'block', color: '#fbbf24', fontWeight: 700 }}>
+                    GPS Lock Unavailable
+                  </strong>
+                  Location was not acquired. Distress signal is encoded with <code>LOC:UNAVAILABLE</code> so authorities do not dispatch to false coordinates. Cellular towers will perform emergency triangulation.
+                </div>
+              </div>
+            )}
+
+            {/* GPS Success Banner if GPS Lock Acquired */}
+            {gpsStatus === 'acquired' && coords && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '0.75rem',
+                padding: '0.625rem 0.75rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#6ee7b7',
+                fontSize: '0.75rem',
+              }}>
+                <MapPin size={16} style={{ color: '#34d399', flexShrink: 0 }} />
+                <span>
+                  <strong>GPS Satellite Lock Active:</strong> High-precision coordinates ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}) attached to distress signal.
+                </span>
+              </div>
+            )}
 
             {/* GPS Telemetry Box */}
             <div style={{ background: 'rgba(30, 41, 59, 0.7)', borderRadius: '1rem', padding: '1rem', marginBottom: '1rem', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
@@ -213,15 +312,26 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
                 {smsPayload}
               </div>
 
-              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8' }}>
-                <span>GPS: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</span>
+              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
+                <span>
+                  GPS:{' '}
+                  {coords ? (
+                    <span style={{ color: '#34d399', fontWeight: 700 }}>
+                      {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                      UNAVAILABLE (0.0000, 0.0000)
+                    </span>
+                  )}
+                </span>
                 <span>Recipient: {phoneNumber}</span>
               </div>
             </div>
 
             {/* Action 1: Mobile Native SMS Link */}
             <a
-              href={`sms:${phoneNumber}?body=${encodeURIComponent(smsPayload)}`}
+              href={getSmsUri(phoneNumber, smsPayload)}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white mb-3 transition-colors text-center no-underline"
               style={{ textDecoration: 'none' }}
             >
@@ -234,7 +344,7 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
               type="button"
               onClick={handleSimulateGatewayWebhook}
               disabled={simulating}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm border transition-all mb-4"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm border transition-all mb-3"
               style={{
                 background: simulatedSuccess ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                 borderColor: simulatedSuccess ? '#10b981' : '#ef4444',
@@ -255,6 +365,12 @@ export const EmergencySMSButton: React.FC<EmergencySMSButtonProps> = ({
             {simulatedSuccess && (
               <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', fontSize: '0.75rem', textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>
                 🚨 Distress call sent to `/api/sms-webhook` and broadcast via Socket.IO! Check the Police Command Center.
+              </div>
+            )}
+
+            {simulationError && (
+              <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.75rem', textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>
+                ⚠️ Webhook Simulation Failed: {simulationError}
               </div>
             )}
 

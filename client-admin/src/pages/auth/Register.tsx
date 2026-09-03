@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { Shield, Lock, Mail, User, Phone, AlertTriangle, ArrowRight, ShieldAlert, Users, Radio } from 'lucide-react';
+import { GoogleLoginButton } from '../../components/GoogleLoginButton';
 
 export const Register: React.FC = () => {
   const { register } = useAuth();
@@ -137,6 +138,12 @@ export const Register: React.FC = () => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          <div className="auth-divider" style={{ margin: '1.25rem 0 1rem' }}>
+            <span>Or sign up with Google</span>
+          </div>
+
+          <GoogleLoginButton role="ADMIN" text="signup_with" onError={(err) => setErrorMsg(err)} />
         </div>
 
         <p className="auth-footer">

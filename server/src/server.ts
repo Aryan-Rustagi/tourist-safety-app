@@ -35,16 +35,38 @@ const allowedOrigins = CLIENT_URL.split(',').map((origin) => origin.trim()).filt
 
 const defaultAllowed = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:3002',
+  'http://localhost:3003',
   'http://localhost:5173',
+  'http://localhost:5174',
   'https://tourist-safety-client.onrender.com',
   'https://admin-dashboard-shrd.onrender.com',
+  'https://tourist-safety-app-1.onrender.com',
 ];
+
+const checkOrigin = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void
+) => {
+  if (!origin) return callback(null, true);
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(origin)) {
+    return callback(null, true);
+  }
+  if (
+    allowedOrigins.includes(origin) ||
+    defaultAllowed.includes(origin) ||
+    origin.endsWith('.onrender.com')
+  ) {
+    return callback(null, true);
+  }
+  callback(null, false);
+};
 
 // Setup Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: [...new Set([...allowedOrigins, ...defaultAllowed])],
+    origin: checkOrigin,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     credentials: true,
   },
@@ -58,7 +80,7 @@ io.on('connection', (socket) => {
 
   socket.on('join_responders', () => {
     socket.join('responders_channel');
-    console.log(`[Socket.io] Socket ${socket.id} joined responders channel`);
+    console.log(`[Socket.io] Socket ${socket.id} joined responders_channel`);
   });
 
   socket.on('disconnect', () => {
@@ -69,7 +91,7 @@ io.on('connection', (socket) => {
 // Middleware
 app.use(
   cors({
-    origin: [...new Set([...allowedOrigins, ...defaultAllowed])],
+    origin: checkOrigin,
     credentials: true,
   })
 );

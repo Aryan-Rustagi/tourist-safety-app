@@ -5,6 +5,7 @@ import {
   updateSafetyZone,
   deleteSafetyZone,
   checkLocationRisk,
+  ingestOsmSafetyZones,
 } from '../controllers/safetyZoneController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -15,6 +16,9 @@ router.get('/', getSafetyZones);
 
 // Public/Tourist: check real-time risk level of current GPS coords
 router.get('/check-risk', checkLocationRisk);
+
+// Admin: ingest real-world facilities from OpenStreetMap
+router.post('/ingest-osm', protect, authorize('ADMIN'), ingestOsmSafetyZones);
 
 // Admin: create zone
 router.post('/', protect, authorize('ADMIN'), createSafetyZone);
