@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { SafetyZone } from '../models/SafetyZone.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { ingestOsmData } from '../utils/osmService.js';
 
 // Haversine formula to compute distance in meters between two lat/lng points
 function calculateDistanceMeters(
@@ -241,3 +242,32 @@ export const checkLocationRisk = async (
     next(error);
   }
 };
+
+// Admin: Ingest real-world data from OpenStreetMap
+export const ingestOsmSafetyZones = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { city, lat, lng, radiusMeters, categories, clearExisting } = req.body;
+
+    const result = await ingestOsmData({
+      cityKey: city,
+      lat: lat ? parseFloat(lat) : undefined,
+      lng: lng ? parseFloat(lng) : undefined,
+      radiusMeters: radiusMeters ? parseInt(radiusMeters, 10) : undefined,
+      categories,
+      clearExisting: Boolean(clearExisting),
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully ingested ${result.totalInserted} safety facilities for ${result.cityOrArea}`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

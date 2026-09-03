@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n \"SERVER,TOURIST,ADMIN,AI\" -c \"blue,magenta,yellow,green\" \"npm run dev:server\" \"npm run dev:tourist\" \"npm run dev:admin\" \"npm run dev:ai\"",
+    "dev:web": "concurrently -n \"SERVER,TOURIST,ADMIN\" -c \"blue,magenta,yellow\" \"npm run dev:server\" \"npm run dev:tourist\" \"npm run dev:admin\"",
     "dev:server": "npm run dev --prefix server",
     "dev:tourist": "npm run dev --prefix client-tourist",
     "dev:admin": "npm run dev --prefix client-admin",
     "dev:ai": "cd ai-service && .venv\\Scripts\\uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
     "seed": "npm run seed --prefix server",
+    "ingest:osm": "npm run ingest:osm --prefix server",
     "build": "npm run build --prefix server && npm run build --prefix client-tourist && npm run build --prefix client-admin",
     "install:all": "npm install && npm install --prefix server && npm install --prefix client-tourist && npm install --prefix client-admin"
   },

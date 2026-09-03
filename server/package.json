@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon",
     "seed": "tsx src/seed.ts",
+    "ingest:osm": "tsx src/scripts/ingestOsmData.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },

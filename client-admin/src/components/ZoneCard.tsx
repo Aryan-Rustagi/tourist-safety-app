@@ -14,8 +14,9 @@ export interface SafetyZoneData {
 export const ZoneCard: React.FC<{
   zone: SafetyZoneData;
   distanceMeters?: number;
+  isSelected?: boolean;
   onSelect?: () => void;
-}> = ({ zone, distanceMeters, onSelect }) => {
+}> = ({ zone, distanceMeters, isSelected, onSelect }) => {
   const getRiskBadge = (level: SafetyZoneData['riskLevel']) => {
     switch (level) {
       case 'LOW':
@@ -32,7 +33,14 @@ export const ZoneCard: React.FC<{
   const badge = getRiskBadge(zone.riskLevel);
 
   return (
-    <div onClick={onSelect} className="card card-interactive flex flex-col justify-between">
+    <div
+      onClick={onSelect}
+      className={`card card-interactive flex flex-col justify-between cursor-pointer transition-all duration-200 ${
+        isSelected
+          ? 'ring-2 ring-purple-600 border-purple-500 bg-purple-50/20 shadow-md shadow-purple-600/10'
+          : 'hover:border-slate-300'
+      }`}
+    >
       <div>
         <div className="flex items-start justify-between gap-sm mb-sm">
           <h4>{zone.name}</h4>

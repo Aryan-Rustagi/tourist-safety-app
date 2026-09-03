@@ -58,23 +58,33 @@ export const handleSMSWebhook = async (
       return;
     }
 
-    if (!latStr || !lngStr) {
-      res.status(400).json({ success: false, message: 'Missing LAT or LNG in SMS body' });
-      return;
-    }
+    const isUnknownLoc =
+      !latStr ||
+      !lngStr ||
+      latStr.toUpperCase() === 'UNKNOWN' ||
+      lngStr.toUpperCase() === 'UNKNOWN' ||
+      data['LOC'] === 'UNAVAILABLE';
 
-    const latitude = parseFloat(latStr);
-    const longitude = parseFloat(lngStr);
+    let latitude = isUnknownLoc ? 0 : parseFloat(latStr);
+    let longitude = isUnknownLoc ? 0 : parseFloat(lngStr);
 
     if (isNaN(latitude) || isNaN(longitude)) {
-      res.status(400).json({ success: false, message: 'Invalid LAT or LNG values' });
-      return;
+      latitude = 0;
+      longitude = 0;
     }
 
-    // Update the user's lat and lng in MongoDB
-    user.latitude = latitude;
-    user.longitude = longitude;
-    await user.save();
+    const hasPreciseLocation = !isUnknownLoc && (latitude !== 0 || longitude !== 0);
+
+    // Update user coordinates in MongoDB only if valid non-zero location was acquired
+    if (hasPreciseLocation) {
+      user.latitude = latitude;
+      user.longitude = longitude;
+      await user.save();
+    }
+
+    const distressMessage = hasPreciseLocation
+      ? `EMERGENCY SOS via SMS: Tourist in distress! Sender: ${from || 'GSM Network'}`
+      : `EMERGENCY SOS via SMS: Tourist in distress! (GPS Signal Unavailable - GSM Tower Triangulation Required) Sender: ${from || 'GSM Network'}`;
 
     // If SOS is present, create or update active SOSAlert document with status ACTIVE
     if (hasSOS) {
@@ -85,17 +95,17 @@ export const handleSMSWebhook = async (
 
       let alert;
       if (existingAlert) {
-        existingAlert.latitude = latitude;
-        existingAlert.longitude = longitude;
-        existingAlert.message = `EMERGENCY SOS via SMS: Tourist in distress! Sender: ${from || 'GSM Network'}`;
+        existingAlert.latitude = hasPreciseLocation ? latitude : (user.latitude || 0);
+        existingAlert.longitude = hasPreciseLocation ? longitude : (user.longitude || 0);
+        existingAlert.message = distressMessage;
         existingAlert.status = 'ACTIVE';
         alert = await existingAlert.save();
       } else {
         alert = await SOSAlert.create({
           userId: user._id,
-          latitude,
-          longitude,
-          message: `EMERGENCY SOS via SMS: Tourist in distress! Sender: ${from || 'GSM Network'}`,
+          latitude: hasPreciseLocation ? latitude : (user.latitude || 0),
+          longitude: hasPreciseLocation ? longitude : (user.longitude || 0),
+          message: distressMessage,
           status: 'ACTIVE',
         });
       }
