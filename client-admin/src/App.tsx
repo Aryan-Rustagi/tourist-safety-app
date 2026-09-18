@@ -1,26 +1,18 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import { AlertBanner } from './components/AlertBanner';
-import { Footer } from './components/Footer';
 import { useAuth } from './context/AuthContext';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminSafetyZones } from './pages/admin/AdminSafetyZones';
 import { AdminTourists } from './pages/admin/AdminTourists';
-import { TouristHome } from './pages/tourist/TouristHome';
-import { SafeZones } from './pages/tourist/SafeZones';
-import { ReportIncident } from './pages/tourist/ReportIncident';
-import { EmergencyContacts } from './pages/tourist/EmergencyContacts';
+import { EmergencyContacts } from './pages/admin/AdminEmergencyContacts';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
-import { LayoutWrapper } from './components/LayoutWrapper';
-
 import { AdminLayout } from './components/AdminLayout';
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
-  allowedRoles?: Array<'TOURIST' | 'ADMIN'>;
-}> = ({ children, allowedRoles }) => {
+  allowedRoles?: Array<'ADMIN'>;
+}> = ({ children, allowedRoles = ['ADMIN'] }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -38,7 +30,7 @@ const ProtectedRoute: React.FC<{
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && user && !allowedRoles.includes(user.role as 'ADMIN')) {
     return <Navigate to="/login" replace />;
   }
 
@@ -46,73 +38,24 @@ const ProtectedRoute: React.FC<{
 };
 
 export const App: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
-  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
-  const isTourist = isAuthenticated && user?.role === 'TOURIST';
+  const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
-      {/* Root Path - Dispatches to Admin Dashboard or Tourist Dashboard */}
+      {/* Root Command Center Route */}
       <Route
         path="/"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'TOURIST']}>
-            {isAdmin ? (
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            ) : (
-              <div className="app-wrapper">
-                <Navbar />
-                <main className="main-content">
-                  <LayoutWrapper>
-                    <TouristHome />
-                  </LayoutWrapper>
-                </main>
-                <Footer portal="tourist" />
-              </div>
-            )}
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'TOURIST']}>
-            {isAdmin ? (
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            ) : (
-              <div className="app-wrapper">
-                <Navbar />
-                <main className="main-content">
-                  <LayoutWrapper>
-                    <TouristHome />
-                  </LayoutWrapper>
-                </main>
-                <Footer portal="tourist" />
-              </div>
-            )}
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/report"
-        element={
-          <ProtectedRoute allowedRoles={['TOURIST', 'ADMIN']}>
-            <div className="app-wrapper">
-              <Navbar />
-              <main className="main-content">
-                <LayoutWrapper>
-                  <ReportIncident />
-                </LayoutWrapper>
-              </main>
-              <Footer portal="tourist" />
-            </div>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+
+      {/* Perimeter & Safety Zones */}
       <Route
         path="/zones"
         element={
@@ -123,6 +66,8 @@ export const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Tourist Accounts & KYC */}
       <Route
         path="/tourists"
         element={
@@ -133,6 +78,8 @@ export const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Emergency Contacts Directory */}
       <Route
         path="/contacts"
         element={
@@ -174,6 +121,7 @@ export const App: React.FC = () => {
         }
       />
 
+      {/* Wildcard Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
