@@ -8,5 +8,4 @@ joblib
 pydantic
 python-dotenv
 openai
-openrouter
 requests
