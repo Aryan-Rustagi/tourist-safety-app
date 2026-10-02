@@ -17,7 +17,7 @@ export const Register: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  useEffect(() => { document.title = 'Create Account — Safar Setu'; }, []);
+  useEffect(() => { document.title = 'Create Account — Guardian Go'; }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +63,7 @@ export const Register: React.FC = () => {
             <div className="navbar-brand-icon">
               <Shield size={20} color="#fff" />
             </div>
-            <span className="navbar-brand-text" style={{ color: 'white' }}>Safar Setu</span>
+            <span className="navbar-brand-text" style={{ color: 'white' }}>Guardian Go</span>
           </div>
 
           <h2 className="auth-panel-tagline">

@@ -60,7 +60,7 @@ export const AdminSafetyZones: React.FC = () => {
   const [osmResult, setOsmResult] = useState<any | null>(null);
 
   useEffect(() => {
-    document.title = 'Safety Perimeters — Safar Setu Admin';
+    document.title = 'Safety Perimeters — Guardian Go Admin';
     fetchZones();
   }, []);
 

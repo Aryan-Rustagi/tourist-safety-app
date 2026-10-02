@@ -38,7 +38,7 @@ export const EmergencyContacts: React.FC = () => {
   );
 
   useEffect(() => {
-    document.title = 'Emergency Contacts — Safar Setu Admin';
+    document.title = 'Emergency Contacts — Guardian Go Admin';
     loadContacts();
   }, [isAuthenticated]);
 

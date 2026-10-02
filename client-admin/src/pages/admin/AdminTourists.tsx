@@ -25,7 +25,7 @@ export const AdminTourists: React.FC = () => {
   const [selectedTourist, setSelectedTourist] = useState<TouristData | null>(null);
 
   useEffect(() => {
-    document.title = 'Tourists Management — Safar Setu Admin';
+    document.title = 'Tourists Management — Guardian Go Admin';
     fetchTourists();
   }, []);
 

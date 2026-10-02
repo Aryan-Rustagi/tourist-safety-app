@@ -61,7 +61,7 @@ const getLiveFreeModels = async (): Promise<string[]> => {
   return TOP_FREE_MODELS;
 };
 
-const defaultSafetyPrompt = `You are Safar Setu AI, a real-time safety intelligence assistant for tourists in India.
+const defaultSafetyPrompt = `You are Guardian Go AI, a real-time safety intelligence assistant for tourists in India.
 Provide clear, actionable, concise advice formatted in markdown.
 CRITICAL INSTRUCTION: Return ONLY your final answer. Do NOT output internal thoughts, analysis steps, reasoning traces, or draft notes.`;
 
@@ -252,7 +252,7 @@ const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
       `If you are in immediate danger, please follow these steps right now:\n\n` +
       `1. **Call 112 immediately** (India's National Emergency Helpline for Police, Ambulance & Fire).\n` +
       `2. **Move to a Public Place**: Head directly toward a hotel lobby, metro station, bank/ATM, or staffed restaurant.\n` +
-      `3. **Press the SOS Button** on your Safar Setu screen to broadcast your GPS coordinates to authorities and your ICE contacts.\n` +
+      `3. **Press the SOS Button** on your Guardian Go screen to broadcast your GPS coordinates to authorities and your ICE contacts.\n` +
       `4. **Key Helplines**:\n` +
       `   - **112**: National Emergency Services\n` +
       `   - **1091**: Women Safety Helpline\n` +
@@ -293,7 +293,7 @@ const generateAutonomousSafetyChat = (message: string, contextStr: string) => {
   }
 
   return (
-    `Namaste! 🙏 I am your **Safar Setu AI Safety Guardian**.\n\n` +
+    `Namaste! 🙏 I am your **Guardian Go AI Safety Guardian**.\n\n` +
     `I am actively monitoring your safety. How can I assist you?\n\n` +
     `• 🚨 **Emergency Help & SOS Protocols (112)**\n` +
     `• 🏥 **First Aid, Hospitals & Bite Treatment**\n` +
@@ -368,7 +368,7 @@ export const sendChatWithFallback = async (history: any[], contextStr: string) =
   }
 
   // 4. Safe offline fallback
-  console.log('[AI Chat] ⚡ Delivered autonomous Safar Setu safety intelligence response.');
+  console.log('[AI Chat] ⚡ Delivered autonomous Guardian Go safety intelligence response.');
   return {
     role: 'assistant',
     content: generateAutonomousSafetyChat(userMessage, contextStr),

@@ -57,7 +57,7 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
 
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-            <span>Safar Setu Admin</span>
+            <span>Guardian Go Admin</span>
             <span>/</span>
             <span className="text-slate-700 font-bold">{getPageTitle()}</span>
           </div>

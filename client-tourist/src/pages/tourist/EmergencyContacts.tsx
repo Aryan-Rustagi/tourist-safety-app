@@ -38,7 +38,7 @@ export const EmergencyContacts: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
-    document.title = 'Emergency Contacts — Safar Setu';
+    document.title = 'Emergency Contacts — Guardian Go';
     loadContacts();
   }, [isAuthenticated]);
 

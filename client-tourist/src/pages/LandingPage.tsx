@@ -37,7 +37,7 @@ export const LandingPage: React.FC = () => {
   const [regError, setRegError] = useState('');
 
   useEffect(() => {
-    document.title = 'Safar Setu — Tourist Safety Platform';
+    document.title = 'Guardian Go — Tourist Safety Platform';
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -126,7 +126,7 @@ export const LandingPage: React.FC = () => {
                 marginBottom: '2.5rem',
                 maxWidth: 480,
               }}>
-                Safar Setu connects tourists to emergency SOS, safety zone maps,
+                Guardian Go connects tourists to emergency SOS, safety zone maps,
                 ICE contacts, and a live police dispatch console — real-time, every time.
               </p>
 

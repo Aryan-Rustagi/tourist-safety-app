@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 
 export const AboutPage: React.FC = () => {
   useEffect(() => {
-    document.title = 'About — Safar Setu | SIH';
+    document.title = 'About — Guardian Go | SIH';
   }, []);
 
   return (
@@ -30,7 +30,7 @@ export const AboutPage: React.FC = () => {
       <section className="mt-2xl">
         <h2>Solution</h2>
         <p className="text-secondary text-sm mt-sm mb-lg">
-          Safar Setu is a dual-portal MERN system: a tourist app for SOS, maps, ICE
+          Guardian Go is a dual-portal MERN system: a tourist app for SOS, maps, ICE
           contacts, and incident reports; and an admin command center for acknowledge / resolve
           workflows over Socket.IO.
         </p>
